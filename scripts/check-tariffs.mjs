@@ -9,7 +9,9 @@ const ok = (cond, msg) => { if (!cond) { failures++; console.error('FAIL: ' + ms
 const eq = (got, want, msg) => ok(JSON.stringify(got) === JSON.stringify(want), `${msg} (got ${JSON.stringify(got)}, want ${JSON.stringify(want)})`);
 
 try {
-  const { buildTariffs, tariffSource, gridFacts, fullGridTables } = await import('../.build-test/core/tariffs.mjs');
+  const { buildTariffs, tariffSource, gridFacts, fullGridTables, tariffsToggleHint } = await import('../.build-test/core/tariffs.mjs');
+  eq(tariffsToggleHint(false), 'Cliquer pour afficher', 'toggle hint when collapsed');
+  eq(tariffsToggleHint(true), 'Cliquer pour masquer', 'toggle hint when expanded');
   const { formatCentsPerKwh, formatEuro, frLongDate } = await import('../.build-test/core/format.mjs');
   const F = await import('../.build-test/core/format.mjs');
   const { GRIDS } = await import('../.build-test/data/grids.mjs');

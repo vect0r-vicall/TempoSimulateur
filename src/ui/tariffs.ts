@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Victor Allombert
 import { OFFER_LABEL } from '../core/pricing';
-import { Tariffs, TariffOffer, TariffSection, GridTable } from '../core/tariffs';
+import { Tariffs, TariffOffer, TariffSection, GridTable, tariffsToggleHint } from '../core/tariffs';
 import { formatCentsNumber, formatCentsPerKwh, formatEuro, formatEuroNumber, frDate, frLongDate } from '../core/format';
 import { el, node } from './dom';
 
@@ -86,18 +86,36 @@ function factsList(s: TariffSection): HTMLElement | null {
   return box;
 }
 
+/** Builds the persistent collapsible shell once; its open state lives in the DOM for the session (nothing is stored). */
+function ensureShell(root: HTMLElement): HTMLElement {
+  const existing = root.querySelector<HTMLElement>('.tariffs-body');
+  if (existing) return existing;
+  const d = node('details', 'tariffs-toggle');
+  const summary = node('summary', 'tariffs-summary');
+  const hint = node('span', 'tariffs-summary-hint', tariffsToggleHint(false));
+  hint.setAttribute('aria-hidden', 'true'); // the native expanded state already conveys it; keeps the accessible name 'Tarifs appliqués'
+  summary.append(node('h2', undefined, 'Tarifs appliqués'), hint);
+  const body = node('div', 'tariffs-body');
+  d.append(summary, body);
+  d.addEventListener('toggle', () => {
+    hint.textContent = tariffsToggleHint(d.open);
+  });
+  root.replaceChildren(d);
+  return body;
+}
+
 export function renderTariffs(t: Tariffs | null): void {
   const root = el<HTMLElement>('tariffs');
+  const body = ensureShell(root);
   // keep the opened grids open across re-renders (kVA / offer / period changes)
-  const opened = new Set(Array.from(root.querySelectorAll<HTMLDetailsElement>('details[open]')).map((d) => d.dataset.effective));
-  root.replaceChildren();
+  const opened = new Set(Array.from(body.querySelectorAll<HTMLDetailsElement>('details[open]')).map((d) => d.dataset.effective));
+  body.replaceChildren();
   if (!t) {
     root.hidden = true;
     return;
   }
   root.hidden = false;
-  root.append(
-    node('h2', undefined, 'Tarifs appliqués'),
+  body.append(
     node('p', 'hint', `Puissance souscrite : ${t.kva} kVA · prix TTC · abonnement en € par mois · kWh en centimes d'euro`),
   );
   for (const s of t.sections) {
@@ -128,7 +146,7 @@ export function renderTariffs(t: Tariffs | null): void {
     sec.append(fullGridDetails(s, t.kva, opened.has(s.effective)));
     const facts = factsList(s);
     if (facts) sec.append(facts);
-    root.append(sec);
+    body.append(sec);
   }
-  if (t.calendarEstimate) root.append(node('p', 'tariff-source', CALENDAR_LINE));
+  if (t.calendarEstimate) body.append(node('p', 'tariff-source', CALENDAR_LINE));
 }

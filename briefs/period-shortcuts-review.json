@@ -1,0 +1,81 @@
+{
+ "task": "period-shortcuts",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "fast",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "auto_fixes_applied": 0,
+ "findings": [
+  {
+   "severity": "LOW",
+   "path": "src/ui/controls.ts",
+   "summary": "tooltip (title) is the only explanation of the 13-calendar-month remark; not available on touch/keyboard or when disabled",
+   "specialist": "reviewer-security",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "wording is accurate and documented in README/FR-032; optional aria-describedby/visible help in a later task"
+  },
+  {
+   "severity": "INFO",
+   "path": "src/core/period.ts",
+   "summary": "365-day window computed in two places (defaultPeriod and shortcutPeriods)",
+   "specialist": "reviewer-logic",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "equivalent today and asserted equal by CHECK-9 on three datasets; optional refactor"
+  },
+  {
+   "severity": "INFO",
+   "path": "scripts/check-forbidden-apis.mjs",
+   "summary": "createElement patterns miss node('a') via the dom.ts wrapper (pre-existing gap)",
+   "specialist": "reviewer-security",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "not caused by this change; optional hardening"
+  }
+ ],
+ "resolved_this_round": [
+  {
+   "severity": "LOW",
+   "path": "src/core/period.ts",
+   "summary": "clamp message has no singular form ('1 jours')",
+   "specialist": "reviewer-logic",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "singular 'jour' for N=1 + assertion in check-shortcuts"
+  },
+  {
+   "severity": "INFO",
+   "path": "specs/tempo-simulator.md",
+   "summary": "N in the clamp message is the calendar span (undocumented); re-click idempotence and multi-press semantics undocumented; AC-22 gap unexplained",
+   "specialist": "reviewer-logic+reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "FR-032 wording extended; note that AC-22 is intentionally unused"
+  }
+ ],
+ "cross_runtime_findings": [],
+ "summary": "2 independent fresh reviewers (period arithmetic/spec; security/UI/a11y/hygiene) built and ran gates (exit 0 incl. demo data) plus Chromium runs (keyboard, aria-pressed after clicks/edits/new file, 55-day file, 30 rapid clicks, hostile CSV, contrast light/dark, 390px). No CRITICAL/HIGH/MEDIUM. 1 LOW + 1 INFO fixed and re-verified by the lead; 1 LOW + 2 INFO deferred.",
+ "no_go_reason": null,
+ "degraded_review_process": {
+  "reason": "roster review tool bundle not installed in this project; install from a local clone of the public roster repo was blocked by the auto-mode classifier; user chose degraded review",
+  "skipped": [
+   "bundle-preflight",
+   "scope-gate (Fast mode: not run by design)",
+   "normalizer",
+   "convergence-gate",
+   "cross-runtime-review (opencode on PATH, no wrapper; egress not authorised)",
+   "invocation-trace"
+  ],
+  "assurance": "two independent fresh sub-agents; lead re-verified fixes; mechanical gates NOT run"
+ },
+ "escalation_needed": false,
+ "escalation_reason": null
+}

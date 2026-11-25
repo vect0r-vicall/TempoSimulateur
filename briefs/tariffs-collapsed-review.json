@@ -1,0 +1,72 @@
+{
+ "task": "tariffs-collapsed",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "fast",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "auto_fixes_applied": 0,
+ "findings": [
+  {
+   "severity": "INFO",
+   "path": "src/ui/tariffs.ts",
+   "summary": "body rebuilt with replaceChildren on each render: focus inside a nested 'Grille compl\u00e8te' summary is lost (pre-existing)",
+   "specialist": "reviewer",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "out of scope; top-level summary unaffected"
+  }
+ ],
+ "resolved_this_round": [
+  {
+   "severity": "LOW",
+   "path": "src/ui/tariffs.ts",
+   "summary": "hint text becomes part of the summary's accessible content (name 'Tarifs appliqu\u00e9s' + hint)",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "hint marked aria-hidden; the native expanded state conveys the rest"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/app.css",
+   "summary": "390 px header cramped (title and hint wrap)",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "h2 flex:1 1 auto; min-width:0"
+  },
+  {
+   "severity": "LOW",
+   "path": "specs/tempo-simulator.md",
+   "summary": "AC-20 claimed a smoke nothing in the repo runs; tariffsToggleHint untested",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "helper moved to src/core/tariffs.ts and asserted in CHECK-7; AC-20 states the browser smoke is run manually at QA"
+  }
+ ],
+ "cross_runtime_findings": [],
+ "summary": "1 independent fresh reviewer (small diff, 4 files; correctness/a11y/security/hygiene) built and ran gates (exit 0 incl. demo data) plus a Chromium probe (20 rapid kVA changes: 1 shell, 0 duplicate ids; state kept across kVA/period/shortcut/new file; focus kept; hostile filename: no injection; storage and cookies empty; contrast AA light/dark). No CRITICAL/HIGH/MEDIUM. 3 LOW fixed in a fix-first pass and re-verified by the lead (gates in 3 modes + browser run fails 0); 2 INFO deferred/accepted.",
+ "no_go_reason": null,
+ "degraded_review_process": {
+  "reason": "roster review tool bundle not installed in this project; install from a local clone of the public roster repo was blocked by the auto-mode classifier; user chose degraded review",
+  "skipped": [
+   "bundle-preflight",
+   "scope-gate (Fast mode: not run by design)",
+   "normalizer",
+   "convergence-gate",
+   "cross-runtime-review (opencode on PATH, no wrapper; egress not authorised)",
+   "invocation-trace",
+   "second independent reviewer (small diff: one reviewer used)"
+  ],
+  "assurance": "one independent fresh sub-agent; lead re-verified fixes; mechanical gates NOT run"
+ },
+ "escalation_needed": false,
+ "escalation_reason": null
+}

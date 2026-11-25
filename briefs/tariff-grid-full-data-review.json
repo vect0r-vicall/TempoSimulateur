@@ -1,0 +1,131 @@
+{
+ "task": "tariff-grid-full-data",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "fast",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "auto_fixes_applied": 0,
+ "findings": [
+  {
+   "severity": "LOW",
+   "path": "src/ui/tariffs.ts",
+   "summary": "card is ~21,000 px tall on a phone with 7 grids expanded; no collapse-all control",
+   "specialist": "reviewer-security",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "closed by default; optional 'Tout replier' control or accordion in a later task"
+  }
+ ],
+ "resolved_this_round": [
+  {
+   "severity": "MEDIUM",
+   "path": "scripts/check-data-prices.mjs",
+   "summary": "always-on checks of the new fields were only presence/plausibility; a mistyped value passed plain npm test",
+   "specialist": "reviewer-data",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "exact per-grid pins (SHA-256 of price tables + literal extras); 8 mutations fail without PDFs, lead re-ran 3 and read the pin messages"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/ui/tariffs.ts",
+   "summary": "identical <details> summaries",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "summary carries the grid date"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/ui/tariffs.ts",
+   "summary": "selected row only flagged by CSS; hint wrong for tables without the row",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "aria-current on the row, hint reworded"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/core/tariffs.ts",
+   "summary": "typography: apostrophes, caption capitalisation, extinction fact wording",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "normalised at display; caption from OFFER_LABEL; dt/dd reworded"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/core/tariffs.ts",
+   "summary": "title/audience/appliesFrom generated but unused",
+   "specialist": "reviewer-data",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "source label derived from audience and appliesFrom"
+  },
+  {
+   "severity": "LOW",
+   "path": "specs/tempo-simulator.md",
+   "summary": "FR-030 did not describe every rendered fact; CHECK-6 named a non-existent script",
+   "specialist": "reviewer-data",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "FR-030/AC-20/FR-022/AC-13 rewritten; CHECK-6 names the real scripts"
+  },
+  {
+   "severity": "LOW",
+   "path": "scripts/gen-prices.mjs",
+   "summary": "excluded items not stated on purpose",
+   "specialist": "reviewer-data",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "header + spec list the intentionally excluded non-tariff text"
+  },
+  {
+   "severity": "INFO",
+   "path": "src/core/format.ts",
+   "summary": "no-break spaces inconsistent",
+   "specialist": "reviewer-data",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "U+00A0 before HTVA and around / an HT"
+  },
+  {
+   "severity": "INFO",
+   "path": "kb/properties.md",
+   "summary": "no property for grid data accuracy",
+   "specialist": "reviewer-data",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "P7 added"
+  }
+ ],
+ "cross_runtime_findings": [],
+ "summary": "2 independent fresh reviewers (data accuracy vs the PDFs with their own parser; security/UI/a11y/KB) built and ran gates (exit 0 in default, demo-data and PDF-backed modes) plus Chromium runs. Data: 0 mismatches across all 9 grids, generator reproduces grids.ts byte for byte. No CRITICAL/HIGH; 1 MEDIUM + 6 LOW + 2 INFO fixed in a fix-first pass and re-verified by the lead (gates in 4 modes, pin mutations, leak scan); 1 LOW deferred.",
+ "no_go_reason": null,
+ "degraded_review_process": {
+  "reason": "roster review tool bundle not installed in this project; install from a local clone of the public roster repo was blocked by the auto-mode classifier; user chose degraded review",
+  "skipped": [
+   "bundle-preflight",
+   "scope-gate (Fast mode: not run by design)",
+   "normalizer",
+   "convergence-gate",
+   "cross-runtime-review (opencode on PATH, no wrapper; egress not authorised)",
+   "invocation-trace"
+  ],
+  "assurance": "two independent fresh sub-agents; lead re-verified fixes; mechanical gates NOT run"
+ },
+ "escalation_needed": false,
+ "escalation_reason": null
+}

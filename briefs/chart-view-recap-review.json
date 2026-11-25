@@ -1,0 +1,81 @@
+{
+ "task": "chart-view-recap",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "fast",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "auto_fixes_applied": 4,
+ "findings": [
+  {
+   "severity": "LOW",
+   "path": "scripts/check-viewrecap.mjs",
+   "summary": "check rebuilds the shown-range analysis itself; chart.ts wiring and Tempo-kind days not covered by the check (browser smoke covers them)",
+   "specialist": "reviewer-logic",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "LOW, no defect today; extract a shared pure viewAnalysis() and add Tempo-kind synthetic days in a later task"
+  }
+ ],
+ "resolved_this_round": [
+  {
+   "severity": "LOW",
+   "path": "scripts/check-viewrecap.mjs",
+   "summary": "elision asserted for 3 of 12 month titles",
+   "specialist": "reviewer-logic",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "all 12 titles asserted with independent expectations"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/ui/chart.ts",
+   "summary": "drill-down notice says 'r\u00e9capitulatif ci-dessus', ambiguous next to the new block",
+   "specialist": "reviewer-logic",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "reworded to 'r\u00e9capitulatif g\u00e9n\u00e9ral de la page'"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/ui/chart.ts",
+   "summary": "polite status line rewritten on every draw (both reviewers)",
+   "specialist": "reviewer-logic+reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "assigned only when the text changes"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/app.css",
+   "summary": "unavailable chip contrast ~3.7:1 in light theme (opacity .8 over muted)",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "opacity dropped, dashed border kept, explicit muted colour on the reason"
+  }
+ ],
+ "cross_runtime_findings": [],
+ "summary": "2 independent fresh reviewers (logic/spec; security/UI/a11y/KB) built and ran gates (exit 0, incl. TEMPO_DEMO_DATA=1) and a Chromium run (hostile CSV, drill-downs, kVA 3, 390px, dark). No CRITICAL/HIGH/MEDIUM. 5 LOW + 3 INFO; 4 LOW fixed in a fix-first pass and re-verified by the lead (build/test/lint exit 0), 1 LOW deferred. Reviewers confirmed: totals equal the sum of bars for period/year/month views, no XSS/CSP/forbidden-API issue, no personal data in the diff.",
+ "no_go_reason": null,
+ "degraded_review_process": {
+  "reason": "roster review tool bundle not installed in this project; installation from a local clone of the public roster repo was blocked by the auto-mode classifier and the user chose degraded review",
+  "skipped": [
+   "bundle-preflight",
+   "scope-gate (Fast mode: not run by design)",
+   "normalizer",
+   "convergence-gate",
+   "cross-runtime-review (opencode on PATH, no wrapper; egress not authorised)",
+   "invocation-trace"
+  ],
+  "assurance": "two independent fresh sub-agents; lead re-verified fixes; mechanical gates NOT run"
+ },
+ "escalation_needed": false,
+ "escalation_reason": null
+}

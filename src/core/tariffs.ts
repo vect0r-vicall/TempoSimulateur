@@ -41,6 +41,13 @@ export interface Tariffs {
 }
 
 /** Data-derived text shown with the straight apostrophe used everywhere else in the UI (grids.ts keeps the printed U+2019). */
+const HINT_CLOSED = 'Cliquer pour afficher';
+const HINT_OPEN = 'Cliquer pour masquer';
+/** Visible hint next to the title of the collapsible 'Tarifs appliqués' card. */
+export function tariffsToggleHint(open: boolean): string {
+  return open ? HINT_OPEN : HINT_CLOSED;
+}
+
 export function plain(text: string): string {
   return text.replaceAll('\u2019', "'");
 }

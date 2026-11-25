@@ -286,7 +286,15 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
 
 /* applied tariffs */
 .tariffs h3 { font-size: 1rem; margin: 1.1rem 0 .4rem; }
-.tariffs > .hint { margin: 0 0 .25rem; }
+.tariffs-summary { display: flex; align-items: center; gap: .6rem; cursor: pointer; list-style: none; border-radius: 8px; }
+.tariffs-summary::-webkit-details-marker { display: none; }
+.tariffs-summary::before { content: ""; flex: none; width: .55rem; height: .55rem; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .15s; margin: 0 .2rem 0 .1rem; }
+.tariffs-toggle[open] > .tariffs-summary::before { transform: rotate(45deg); }
+.tariffs-summary h2 { margin: 0; flex: 1 1 auto; min-width: 0; }
+.tariffs-summary-hint { margin-left: auto; color: var(--muted); font-size: .85rem; text-align: right; }
+.tariffs-body { padding-top: 1rem; }
+.tariffs-body > .hint { margin: 0 0 .25rem; }
+@media (prefers-reduced-motion: reduce) { .tariffs-summary::before { transition: none; } }
 .tariff-source { font-size: .85rem; color: var(--muted); margin: .3rem 0 .6rem; overflow-wrap: anywhere; }
 .table-wrap { overflow-x: auto; border-radius: 10px; }
 .tariff-table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: .9rem; }
