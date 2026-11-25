@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: 2026 Victor Allombert
 /** Pure model of the 'Tarifs appliqués' card (FR-030): the EDF prices actually used, per price grid. No DOM. */
 import { GRIDS, Grid } from '../data/grids';
-import { OFFER_IDS, OfferId, gridFor } from './pricing';
+import { OFFER_IDS, OFFER_LABEL, OfferId, gridFor } from './pricing';
 import { dayNum, isoOf } from './days';
-import { frLongDate } from './format';
+import { formatCentsPerKwhHtva, formatEuroPerYearHt, formatPercent, frLongDate } from './format';
 import { Period } from './period';
 import { Analysis } from './recap';
 
@@ -15,7 +15,15 @@ export interface TariffOffer {
   monthlySubscriptionMicro: number; // 0 when unavailable (never shown)
   prices: TariffPrice[]; // empty when unavailable
 }
-export interface TariffSource { label: string; file: string }
+export interface TariffSource { label: string }
+/** One printed table of a grid (all kVA rows); cells are integer micro-euros, subscription first. */
+export interface GridTable {
+  offer: OfferId;
+  caption: string;
+  columns: { label: string; unit: 'eur' | 'cents' }[]; // after the kVA column
+  rows: { kva: number; selected: boolean; cells: number[] }[];
+}
+export interface TariffFact { label: string; value: string }
 export interface TariffSection {
   effective: string; // grid date
   from: string;
@@ -23,6 +31,8 @@ export interface TariffSection {
   reusedBeyondLast: boolean;
   source: TariffSource;
   offers: TariffOffer[];
+  fullGrid: GridTable[]; // complete Tempo, HC/HP and Base tables, every kVA row as printed
+  facts: TariffFact[]; // taxes, majorations, Base extinction: only what this grid prints
 }
 export interface Tariffs {
   kva: number;
@@ -30,11 +40,84 @@ export interface Tariffs {
   calendarEstimate: boolean; // Tempo prices applied to HC/HP days through the RTE calendar
 }
 
-export function tariffSource(effective: string): TariffSource {
-  return {
-    label: `EDF — grille de prix « Tarif Bleu » (clients particuliers), applicable au ${frLongDate(effective)}, prix TTC`,
-    file: `tarifs-${effective.replace(/-/g, '')}.pdf`,
-  };
+/** Data-derived text shown with the straight apostrophe used everywhere else in the UI (grids.ts keeps the printed U+2019). */
+export function plain(text: string): string {
+  return text.replaceAll('\u2019', "'");
+}
+
+/** Source line of a grid, derived from its audience and applicability date (never a file name). */
+export function tariffSource(grid: Pick<Grid, 'audience' | 'appliesFrom'>): TariffSource {
+  return { label: `EDF — grille de prix « Tarif Bleu » (${plain(grid.audience)}), applicable au ${frLongDate(grid.appliesFrom)}, prix TTC` };
+}
+
+/** Complete printed tables of a grid; the row of `kva` is flagged. */
+export function fullGridTables(grid: Grid, kva: number): GridTable[] {
+  const sub = { label: 'Abonnement (€ TTC/mois)', unit: 'eur' as const };
+  const kwh = (label: string) => ({ label, unit: 'cents' as const });
+  const row = (r: { kva: number }, cells: number[]) => ({ kva: r.kva, selected: r.kva === kva, cells });
+  const cap = (offer: OfferId) => `Option ${OFFER_LABEL[offer]} — grille du ${frLongDate(grid.effective)}, toutes les puissances`;
+  return [
+    {
+      offer: 'tempo', caption: cap('tempo'),
+      columns: [sub, kwh('Bleu HC (c€ TTC/kWh)'), kwh('Bleu HP (c€ TTC/kWh)'), kwh('Blanc HC (c€ TTC/kWh)'),
+        kwh('Blanc HP (c€ TTC/kWh)'), kwh('Rouge HC (c€ TTC/kWh)'), kwh('Rouge HP (c€ TTC/kWh)')],
+      rows: grid.tempo.map((r) => row(r, [r.sub, r.bleuHC, r.bleuHP, r.blancHC, r.blancHP, r.rougeHC, r.rougeHP])),
+    },
+    {
+      offer: 'hchp', caption: cap('hchp'),
+      columns: [sub, kwh('Heures pleines (c€ TTC/kWh)'), kwh('Heures creuses (c€ TTC/kWh)')],
+      rows: grid.hchp.map((r) => row(r, [r.sub, r.hp, r.hc])),
+    },
+    {
+      offer: 'base', caption: cap('base'),
+      columns: [sub, kwh('Prix du kWh (c€ TTC/kWh)')],
+      rows: grid.base.map((r) => row(r, [r.sub, r.kwh])),
+    },
+  ];
+}
+
+/** Taxes, majorations and Base extinction printed by a grid. Items the grid does not print are omitted (never 0). */
+export function gridFacts(grid: Grid): TariffFact[] {
+  const out: TariffFact[] = [];
+  const t = grid.taxes;
+  if (t.exciseMicroPerKwh !== null) {
+    const label = t.exciseLabel === 'Accise'
+      ? "Accise sur l'électricité (anciennement CSPE)"
+      : `Contribution au service public de l'électricité (CSPE${t.exciseAlias ? `, aussi appelée ${plain(t.exciseAlias)}` : ''})`;
+    out.push({ label, value: formatCentsPerKwhHtva(t.exciseMicroPerKwh) });
+  }
+  if (t.tcfeMaxMicroPerKwh !== null) {
+    out.push({ label: "Taxes sur la consommation finale d'électricité (TCFE), montant maximum", value: formatCentsPerKwhHtva(t.tcfeMaxMicroPerKwh) });
+  }
+  if (t.cta) {
+    out.push({ label: "Contribution tarifaire d'acheminement (CTA)",
+      value: t.cta.forMajorityOfClients ? 'Incluse dans le prix (correspondant à la majorité des clients)' : 'Incluse dans le prix' });
+  }
+  if (t.vat.subscription !== null) out.push({ label: "TVA sur l'abonnement", value: formatPercent(t.vat.subscription) });
+  if (t.vat.cta !== null) out.push({ label: 'TVA sur la CTA', value: formatPercent(t.vat.cta) });
+  if (t.vat.consumption !== null) out.push({ label: 'TVA sur les consommations et les autres taxes', value: formatPercent(t.vat.consumption) });
+  const s = grid.surcharges;
+  if (s.selfProducerInjection !== null) {
+    out.push({ label: 'Majoration pour les auto-producteurs individuels avec injection', value: formatEuroPerYearHt(s.selfProducerInjection) });
+  }
+  if (s.noLinky !== null) {
+    out.push({ label: "Majoration de l'abonnement : absence de compteur Linky (hors impossibilité technique d'installation)", value: formatEuroPerYearHt(s.noLinky) });
+  }
+  if (s.noIndexTransmission12Months !== null) {
+    const from = s.noIndexFrom ? `, à partir du ${frLongDate(s.noIndexFrom)}` : '';
+    out.push({
+      label: s.noIndexFrom
+        ? `Majoration pour les consommateurs non équipés d'un compteur Linky et n'ayant pas mis d'index de consommation à disposition du gestionnaire de réseau depuis plus de 12 mois${from}`
+        : "Majoration de l'abonnement : absence de transmission d'index de consommation depuis plus de 12 mois",
+      value: formatEuroPerYearHt(s.noIndexTransmission12Months),
+    });
+  }
+  if (grid.baseExtinction) {
+    const e = grid.baseExtinction;
+    out.push({ label: 'Puissances Base en extinction', value: `de ${e.fromKva} à ${e.toKva} kVA (non souscriptibles)` });
+    if (e.legalBasis) out.push({ label: "Base de l'extinction", value: plain(e.legalBasis) });
+  }
+  return out;
 }
 
 function offerPrices(grid: Grid, offer: OfferId, kva: number): TariffOffer {
@@ -83,8 +166,10 @@ export function buildTariffs(period: Period, kva: number, selected: OfferId[], a
       from: start,
       to: end,
       reusedBeyondLast: g === last && period.to > g.effective,
-      source: tariffSource(g.effective),
+      source: tariffSource(g),
       offers: sel.map((o) => offerPrices(g, o, kva)),
+      fullGrid: fullGridTables(g, kva),
+      facts: gridFacts(g),
     });
   }
   const calendarEstimate = !!a && sel.includes('tempo') && a.offers.tempo.available && a.offers.tempo.calendarEstimateDays > 0;

@@ -4,6 +4,15 @@
 // CHECK-6 part A: price table sanity, spot values, api-couleur-tempo cross-check,
 // and (when PDFs present) an independent re-parse of the PDFs. Plain Node, no TS imports.
 // Exit 0 pass / 1 assertion failure / >=2 error.
+//
+// EXACT PINS (no PDF needed): every grid is pinned below by (a) the SHA-256 of the canonical JSON
+// (sorted keys, JSON.stringify) of {effective, base, hchp, tempo} and (b) the literal expected values of
+// title, audience, appliesFrom, baseExtinction (incl. legalBasis), surcharges, taxes (excise label/alias/value,
+// TCFE maximum, CTA flag, VAT). All of them are public EDF tariff figures. A change of any price or datum in
+// src/data/grids.ts therefore fails plain `npm test`. Changing a pin is only legitimate after regenerating
+// grids.ts from the nine PDFs (scripts/gen-prices.mjs) AND re-running this check with TEMPO_PDF_DIR set
+// (independent PDF re-parse, 9/9 grids compared); then update the pin from the regenerated file.
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -12,6 +21,93 @@ import { pdfDir } from './data-paths.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PDF_DIR = pdfDir() || '';
+const canon = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((q) => [q, x[q]])) : x));
+
+const PIN = {
+  '2022-02-01': {
+    sha256: '3953f81ed013150e76405bfed7886dc518b90a5a02e238aa33e0808498d9bf55',
+    title: "Grille de prix de l’offre de fourniture d’électricité « Tarif Bleu »",
+    audience: "clients particuliers",
+    appliesFrom: '2022-02-01',
+    baseExtinction: {"fromKva":18,"toKva":36,"legalBasis":"Arrêté du 12 août 2010 relatif aux tarifs réglementés de vente de l’électricité"},
+    surcharges: {"selfProducerInjection":3720000,"noLinky":null,"noIndexTransmission12Months":null,"noIndexFrom":null},
+    taxes: {"exciseLabel":"CSPE","exciseAlias":null,"exciseMicroPerKwh":1000,"tcfeMaxMicroPerKwh":6630,"cta":{"forMajorityOfClients":false},"vat":{"subscription":5.5,"cta":5.5,"consumption":20}},
+  },
+  '2022-08-01': {
+    sha256: 'bc5c5bb6fa75ff2595fadc0cc4814e48e7910d5302fda2861a35e9d04f8ac801',
+    title: "Grille de prix de l’offre de fourniture d’électricité « Tarif Bleu »",
+    audience: "clients particuliers",
+    appliesFrom: '2022-08-01',
+    baseExtinction: {"fromKva":18,"toKva":36,"legalBasis":"Arrêté du 12 août 2010 relatif aux tarifs réglementés de vente de l’électricité"},
+    surcharges: {"selfProducerInjection":3720000,"noLinky":null,"noIndexTransmission12Months":null,"noIndexFrom":null},
+    taxes: {"exciseLabel":"CSPE","exciseAlias":null,"exciseMicroPerKwh":1000,"tcfeMaxMicroPerKwh":6630,"cta":{"forMajorityOfClients":false},"vat":{"subscription":5.5,"cta":5.5,"consumption":20}},
+  },
+  '2023-02-01': {
+    sha256: '3c86a896edcf1d1af6c03d2ee35d15a25783a6b852810b38c054693b4494205b',
+    title: "Grille de prix de l’offre de fourniture d’électricité « Tarif Bleu »",
+    audience: "clients particuliers",
+    appliesFrom: '2023-02-01',
+    baseExtinction: {"fromKva":18,"toKva":36,"legalBasis":"Arrêté du 12 août 2010 relatif aux tarifs réglementés de vente de l’électricité"},
+    surcharges: {"selfProducerInjection":8280000,"noLinky":null,"noIndexTransmission12Months":50880000,"noIndexFrom":"2022-01-01"},
+    taxes: {"exciseLabel":"CSPE","exciseAlias":"TICFE","exciseMicroPerKwh":1000,"tcfeMaxMicroPerKwh":null,"cta":{"forMajorityOfClients":true},"vat":{"subscription":5.5,"cta":5.5,"consumption":20}},
+  },
+  '2023-08-01': {
+    sha256: '4ef32d62090bfa1d1be2716d913587b60ba4fa414dbfd08c30fd393aa803b39c',
+    title: "Grille de prix de l’offre de fourniture d’électricité « Tarif Bleu »",
+    audience: "clients particuliers",
+    appliesFrom: '2023-08-01',
+    baseExtinction: {"fromKva":18,"toKva":36,"legalBasis":"Arrêté du 12 août 2010 relatif aux tarifs réglementés de vente de l’électricité"},
+    surcharges: {"selfProducerInjection":8880000,"noLinky":null,"noIndexTransmission12Months":54240000,"noIndexFrom":"2022-01-01"},
+    taxes: {"exciseLabel":"Accise","exciseAlias":"CSPE","exciseMicroPerKwh":1000,"tcfeMaxMicroPerKwh":null,"cta":{"forMajorityOfClients":true},"vat":{"subscription":5.5,"cta":5.5,"consumption":20}},
+  },
+  '2024-02-01': {
+    sha256: '1382639d02c80f620092cee6cdcf1fb73eb36aae0e302e6c98207d2f4988f66b',
+    title: "Grille de prix de l’offre de fourniture d’électricité « Tarif Bleu »",
+    audience: "clients particuliers",
+    appliesFrom: '2024-02-01',
+    baseExtinction: {"fromKva":18,"toKva":36,"legalBasis":"Arrêté du 12 août 2010 relatif aux tarifs réglementés de vente de l’électricité"},
+    surcharges: {"selfProducerInjection":8880000,"noLinky":null,"noIndexTransmission12Months":54240000,"noIndexFrom":"2022-01-01"},
+    taxes: {"exciseLabel":"Accise","exciseAlias":"CSPE","exciseMicroPerKwh":21000,"tcfeMaxMicroPerKwh":null,"cta":{"forMajorityOfClients":true},"vat":{"subscription":5.5,"cta":5.5,"consumption":20}},
+  },
+  '2025-02-01': {
+    sha256: '761a5c0c50f573ba001b303feae35b57f01116fbb3f1ab876141c501bbcd70b3',
+    title: "Grille de prix de l’offre de fourniture d’électricité « Tarif Bleu »",
+    audience: "clients particuliers",
+    appliesFrom: '2025-02-01',
+    baseExtinction: {"fromKva":9,"toKva":36,"legalBasis":null},
+    surcharges: {"selfProducerInjection":9720000,"noLinky":null,"noIndexTransmission12Months":61200000,"noIndexFrom":"2022-01-01"},
+    taxes: {"exciseLabel":"Accise","exciseAlias":"CSPE","exciseMicroPerKwh":33700,"tcfeMaxMicroPerKwh":null,"cta":{"forMajorityOfClients":true},"vat":{"subscription":5.5,"cta":5.5,"consumption":20}},
+  },
+  '2025-08-01': {
+    sha256: '1ccb5166e58c319169233cf5117722cf31a8ed81db1dc64b5662afb2ef507283',
+    title: "Grille de prix de l’offre de fourniture d’électricité « Tarif Bleu »",
+    audience: "clients particuliers",
+    appliesFrom: '2025-08-01',
+    baseExtinction: {"fromKva":9,"toKva":36,"legalBasis":null},
+    surcharges: {"selfProducerInjection":9600000,"noLinky":38900000,"noIndexTransmission12Months":24840000,"noIndexFrom":null},
+    taxes: {"exciseLabel":"Accise","exciseAlias":"CSPE","exciseMicroPerKwh":29980,"tcfeMaxMicroPerKwh":null,"cta":{"forMajorityOfClients":true},"vat":{"subscription":20,"cta":20,"consumption":20}},
+  },
+  '2026-02-01': {
+    sha256: '8e1450b0d25472a3dfffe24fff0719a53a5272ecc076a9158c20b21b66b7ae64',
+    title: "Grille de prix de l’offre de fourniture d’électricité « Tarif Bleu »",
+    audience: "clients particuliers",
+    appliesFrom: '2026-02-01',
+    baseExtinction: {"fromKva":9,"toKva":36,"legalBasis":null},
+    surcharges: {"selfProducerInjection":9600000,"noLinky":38900000,"noIndexTransmission12Months":24840000,"noIndexFrom":null},
+    taxes: {"exciseLabel":"Accise","exciseAlias":"CSPE","exciseMicroPerKwh":30850,"tcfeMaxMicroPerKwh":null,"cta":{"forMajorityOfClients":true},"vat":{"subscription":20,"cta":20,"consumption":20}},
+  },
+  '2026-08-01': {
+    sha256: '16eb77c6cc997749e742358531c6d3737017e352fd78cb8e5ff7a127e8e45047',
+    title: "Grille de prix de l’offre de fourniture d’électricité « Tarif Bleu »",
+    audience: "clients particuliers",
+    appliesFrom: '2026-08-01',
+    baseExtinction: {"fromKva":9,"toKva":36,"legalBasis":null},
+    surcharges: {"selfProducerInjection":9840000,"noLinky":40080000,"noIndexTransmission12Months":25620000,"noIndexFrom":null},
+    taxes: {"exciseLabel":"Accise","exciseAlias":"CSPE","exciseMicroPerKwh":30620,"tcfeMaxMicroPerKwh":null,"cta":{"forMajorityOfClients":true},"vat":{"subscription":20,"cta":null,"consumption":20}},
+  },
+};
+
+
 const fails = [];
 const ok = (c, msg) => { if (!c) fails.push(msg); };
 
@@ -58,6 +154,54 @@ function run() {
     }
   }
 
+  // structure/sanity of the extra data (always checked; no PDF needed)
+  const TOP = ['effective','title','audience','appliesFrom','base','hchp','tempo','baseExtinction','surcharges','taxes'];
+  const isMicro = (v) => v === null || (Number.isInteger(v) && v > 0);
+  for (const g of GRIDS) {
+    const t = g.effective;
+    ok(JSON.stringify(Object.keys(g)) === JSON.stringify(TOP), `${t} top-level fields`);
+    ok(g.appliesFrom === t, `${t} appliesFrom ${g.appliesFrom}`);
+    ok(/Tarif Bleu/.test(g.title) && g.audience === 'clients particuliers', `${t} title/audience`);
+    const e = g.baseExtinction;
+    ok(e && Number.isInteger(e.fromKva) && Number.isInteger(e.toKva), `${t} baseExtinction missing`);
+    if (e) {
+      ok(e.toKva === 36 && e.fromKva === (t < '2025-02-01' ? 18 : 9), `${t} extinction range ${e.fromKva}-${e.toKva}`);
+      ok(g.base.some((r) => r.kva === e.fromKva) && g.base.some((r) => r.kva === e.toKva), `${t} extinction bounds are Base rows`);
+      ok(e.legalBasis === null || /^Arrêté du 12 août 2010/.test(e.legalBasis), `${t} legalBasis`);
+      ok((e.legalBasis === null) === (t >= '2025-02-01'), `${t} legalBasis presence per era`);
+    }
+    const s = g.surcharges;
+    ok(JSON.stringify(Object.keys(s)) === JSON.stringify(['selfProducerInjection','noLinky','noIndexTransmission12Months','noIndexFrom']), `${t} surcharges fields`);
+    for (const k of ['selfProducerInjection','noLinky','noIndexTransmission12Months']) ok(isMicro(s[k]), `${t} surcharges.${k} invalid ${s[k]}`);
+    ok(Number.isInteger(s.selfProducerInjection) && s.selfProducerInjection < 20e6, `${t} injection surcharge plausible`);
+    ok((s.noLinky === null) === (t < '2025-08-01'), `${t} noLinky presence per era`);
+    ok((s.noIndexTransmission12Months === null) === (t < '2023-02-01'), `${t} noIndex presence per era`);
+    ok(s.noIndexFrom === null || (s.noIndexFrom === '2022-01-01' && t >= '2023-02-01' && t < '2025-08-01'), `${t} noIndexFrom`);
+    for (const k of ['noLinky','noIndexTransmission12Months']) ok(s[k] === null || s[k] < 100e6, `${t} ${k} plausible`);
+    const x = g.taxes;
+    ok(JSON.stringify(Object.keys(x)) === JSON.stringify(['exciseLabel','exciseAlias','exciseMicroPerKwh','tcfeMaxMicroPerKwh','cta','vat']), `${t} taxes fields`);
+    ok(x.exciseLabel === (t < '2023-08-01' ? 'CSPE' : 'Accise'), `${t} excise label`);
+    ok(Number.isInteger(x.exciseMicroPerKwh) && x.exciseMicroPerKwh >= 1000 && x.exciseMicroPerKwh <= 50000, `${t} excise plausible ${x.exciseMicroPerKwh}`);
+    ok(isMicro(x.tcfeMaxMicroPerKwh) && (x.tcfeMaxMicroPerKwh === null) === (t >= '2023-02-01'), `${t} tcfe presence`);
+    ok(x.cta && typeof x.cta.forMajorityOfClients === 'boolean', `${t} cta`);
+    ok(x.vat.consumption === 20, `${t} VAT consumption`);
+    ok(x.vat.subscription === (t < '2025-08-01' ? 5.5 : 20), `${t} VAT subscription ${x.vat.subscription}`);
+    ok(x.vat.cta === null ? t === '2026-08-01' : x.vat.cta === x.vat.subscription, `${t} VAT cta`);
+  }
+  // exact pins (see header)
+  ok(JSON.stringify(Object.keys(PIN)) === JSON.stringify(dates), 'pin set covers exactly the nine grids');
+  for (const g of GRIDS) {
+    const p = PIN[g.effective];
+    if (!p) continue;
+    const sha = createHash('sha256').update(canon({ effective: g.effective, base: g.base, hchp: g.hchp, tempo: g.tempo })).digest('hex');
+    ok(sha === p.sha256, `${g.effective} price tables differ from the pinned SHA-256 (got ${sha})`);
+    for (const k of ['title', 'audience', 'appliesFrom', 'baseExtinction', 'surcharges', 'taxes']) {
+      ok(canon(g[k]) === canon(p[k]), `${g.effective} ${k} differs from its pin: got ${canon(g[k])}, pinned ${canon(p[k])}`);
+    }
+  }
+  const accise = Object.fromEntries(GRIDS.map((g) => [g.effective, g.taxes.exciseMicroPerKwh]));
+  ok(JSON.stringify(Object.values(accise)) === JSON.stringify([1000,1000,1000,1000,21000,33700,29980,30850,30620]), 'excise per grid era');
+
   const G = (d) => GRIDS.find((g) => g.effective === d);
   const row = (rows, kva) => rows.find((r) => r.kva === kva);
   // spot values 2026-02
@@ -91,6 +235,20 @@ function run() {
         ok(JSON.stringify(want[k]) === JSON.stringify(have[k]),
           `${g.effective} ${k} differs from independent PDF parse\n  pdf : ${JSON.stringify(want[k])}\n  ts  : ${JSON.stringify(have[k])}`);
       }
+      const wx = reparseExtras(txt);
+      const hx = {
+        title: g.title, audience: g.audience, appliesFrom: g.appliesFrom,
+        ext: g.baseExtinction && [g.baseExtinction.fromKva, g.baseExtinction.toKva, g.baseExtinction.legalBasis],
+        inj: g.surcharges.selfProducerInjection, noLinky: g.surcharges.noLinky, noIdx: g.surcharges.noIndexTransmission12Months,
+        noIdxFrom: g.surcharges.noIndexFrom,
+        excise: [g.taxes.exciseLabel, g.taxes.exciseAlias, g.taxes.exciseMicroPerKwh], tcfe: g.taxes.tcfeMaxMicroPerKwh,
+        cta: g.taxes.cta && g.taxes.cta.forMajorityOfClients,
+        vat: [g.taxes.vat.subscription, g.taxes.vat.cta, g.taxes.vat.consumption],
+      };
+      for (const k of Object.keys(hx)) {
+        ok(JSON.stringify(wx[k]) === JSON.stringify(hx[k]),
+          `${g.effective} ${k} differs from independent PDF parse\n  pdf : ${JSON.stringify(wx[k])}\n  ts  : ${JSON.stringify(hx[k])}`);
+      }
       compared++;
     }
     console.log(`independent PDF re-parse: ${compared}/9 grids compared`);
@@ -117,6 +275,46 @@ function reparse(txt) {
     else if (n === 4) out.hc.push([+toks[0], S(1), K(2), K(3)]);
     else if (n === 7) { out.base.push([+toks[0], S(1), K(2)]); out.hc.push([+toks[3], S(4), K(5), K(6)]); }
   }
+  return out;
+}
+
+// Independent re-parse of the non-table data, line oriented (no code shared with gen-prices.mjs).
+// Each datum is read from the lines that mention it; repeated occurrences must agree.
+function reparseExtras(txt) {
+  const lines = txt.split(/\r?\n/).map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const joined = lines.join(' ');
+  const dec = (s, n) => { const [a, b = ''] = s.split(','); return Number(a + b.padEnd(n, '0')); };
+  const lastNum = (l) => { const m = /(\d+,\d+)\s*$/.exec(l); return m ? m[1] : null; };
+  const pick = (re, n) => { const v = [...new Set(lines.filter((l) => re.test(l)).map(lastNum).filter(Boolean))]; return v.length === 1 ? dec(v[0], n) : v.length ? 'CONFLICT' : null; };
+  const out = {};
+  const iA = lines.findIndex((l) => /^Applicable au /.test(l));
+  out.title = lines.slice(0, iA).join(' ');
+  const mo = { janvier: 1, 'février': 2, mars: 3, avril: 4, mai: 5, juin: 6, juillet: 7, 'août': 8, aout: 8, septembre: 9, octobre: 10, novembre: 11, 'décembre': 12 };
+  const [, d, mon, y] = /^Applicable au (\d+)\S* (\S+) (\d{4})/.exec(lines[iA]);
+  out.appliesFrom = [y, String(mo[mon]).padStart(2, '0'), d.padStart(2, '0')].join('-');
+  out.audience = lines.find((l) => /^OFFRE POUR LES /.test(l)).slice('OFFRE POUR LES '.length).toLowerCase();
+  const em = /puissances de (\d+) à (\d+) kVA inclus/.exec(joined);
+  const lg = /(Arrêté du [^,]*? relatif aux tarifs réglementés de vente de l’électricité)/.exec(joined);
+  out.ext = em ? [+em[1], +em[2], lg ? lg[1] : null] : null;
+  out.inj = pick(/producteurs individuels avec injection/, 6);
+  out.noLinky = pick(/absence de compteur Linky/, 6);
+  // the 2023-2025 wording splits the label over 3 lines; the amount sits on the middle one
+  const iMid = lines.findIndex((l) => /pas mis à disposition d’index/.test(l));
+  const a = pick(/absence de transmission d’index/, 6);
+  const b = iMid >= 0 ? dec(lastNum(lines[iMid]), 6) : null;
+  out.noIdx = a !== null ? a : b;
+  out.noIdxFrom = /à partir du 1 ?er janvier 2022/.test(joined) ? '2022-01-01' : null;
+  const exLine = lines.find((l) => /^- (l’Accise|la Contribution (au|aux charges de) Service Public)/i.test(l));
+  const exVal = /d’un montant de (\d+,\d+) cts/.exec(exLine);
+  out.excise = [/Accise/.test(exLine) ? 'Accise' : 'CSPE',
+    /Anciennement CSPE/.test(joined) ? 'CSPE' : /également appelée Taxe Intérieure/.test(joined) ? 'TICFE' : null, dec(exVal[1], 4)];
+  const tl = lines.find((l) => /TCFE\), d’un montant maximum/.test(l));
+  out.tcfe = tl ? dec(/maximum de (\d+,\d+) cts/.exec(tl)[1], 4) : null;
+  const cl = lines.find((l) => /Contribution Tarifaire d’Acheminement/.test(l));
+  out.cta = cl ? /majorité des clients/.test(cl) : null;
+  const vl = /TVA au taux de ([\d,]+)% pour l’abonnement(,| et la CTA,) et au taux de ([\d,]+)%/.exec(joined);
+  const num = (x) => Number(x.replace(',', '.'));
+  out.vat = [num(vl[1]), vl[2] === ',' ? null : num(vl[1]), num(vl[3])];
   return out;
 }
 

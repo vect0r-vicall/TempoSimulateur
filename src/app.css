@@ -308,3 +308,21 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
 .view-offer .badge { font-size: .7rem; padding: .05rem .5rem; }
 .view-offer .offer-reason { font-size: .78rem; color: var(--muted); }
 .view-recap-days { margin: 0; color: var(--muted); font-size: .85rem; }
+.tariffs h4 { font-size: .95rem; margin: .9rem 0 .3rem; }
+.tariff-details { margin: .75rem 0 0; }
+.tariff-details > summary { cursor: pointer; font-weight: 600; padding: .3rem 0; }
+.tariff-details > .table-wrap { margin: .6rem 0 .9rem; }
+.grid-table { min-width: 0; }
+.grid-table caption { text-align: left; font-weight: 600; padding: 0 0 .35rem; caption-side: top; }
+.grid-table th, .grid-table td { padding: .35rem .6rem; }
+.grid-table tbody th { min-width: 0; white-space: nowrap; }
+.grid-table thead th.num { text-align: right; white-space: normal; }
+.grid-table tr.is-selected th, .grid-table tr.is-selected td { background: var(--accent-soft); font-weight: 700; }
+.tariff-facts-list { display: grid; gap: .3rem; margin: 0; }
+.tariff-facts-list div { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border); padding-bottom: .3rem; }
+.tariff-facts-list dt { color: var(--muted); }
+.tariff-facts-list dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 30rem) {
+  .tariff-facts-list div { flex-direction: column; gap: .1rem; }
+  .tariff-facts-list dd { text-align: left; }
+}

@@ -9,8 +9,9 @@ const ok = (cond, msg) => { if (!cond) { failures++; console.error('FAIL: ' + ms
 const eq = (got, want, msg) => ok(JSON.stringify(got) === JSON.stringify(want), `${msg} (got ${JSON.stringify(got)}, want ${JSON.stringify(want)})`);
 
 try {
-  const { buildTariffs, tariffSource } = await import('../.build-test/core/tariffs.mjs');
+  const { buildTariffs, tariffSource, gridFacts, fullGridTables } = await import('../.build-test/core/tariffs.mjs');
   const { formatCentsPerKwh, formatEuro, frLongDate } = await import('../.build-test/core/format.mjs');
+  const F = await import('../.build-test/core/format.mjs');
   const { GRIDS } = await import('../.build-test/data/grids.mjs');
   const ALL = ['tempo', 'hchp', 'base'];
 
@@ -81,14 +82,84 @@ try {
   eq(buildTariffs({ from: '2026-03-01', to: '2026-03-31' }, 9, ALL).calendarEstimate, false, 'no analysis -> no calendar credit');
 
   // source label / file name
-  eq(tariffSource('2026-02-01'), {
+  const g0 = GRIDS.find((g) => g.effective === '2026-02-01');
+  eq(tariffSource(g0), {
     label: 'EDF — grille de prix « Tarif Bleu » (clients particuliers), applicable au 1er février 2026, prix TTC',
-    file: 'tarifs-20260201.pdf',
-  }, 'source for 2026-02-01');
-  eq(tariffSource('2025-08-01').file, 'tarifs-20250801.pdf', 'file name 2025-08-01');
+  }, 'source for 2026-02-01 (label only, no file name)');
+  ok(!/fichier|\.pdf|tarifs-\d/i.test(JSON.stringify(buildTariffs({ from: '2022-02-01', to: '2026-12-31' }, 9, ALL).sections.map((x) => x.source))), 'no fichier/.pdf text in any source');
+  ok(tariffSource({ ...g0, audience: 'clients professionnels' }).label !== tariffSource(g0).label && /clients professionnels/.test(tariffSource({ ...g0, audience: 'clients professionnels' }).label), 'source label follows grid.audience');
+  ok(/applicable au 1er août 2025,/.test(tariffSource({ ...g0, appliesFrom: '2025-08-01' }).label) && tariffSource({ ...g0, appliesFrom: '2025-08-01' }).label !== tariffSource(g0).label, 'source label follows grid.appliesFrom');
+  ok(!/\u2019/.test(tariffSource({ ...g0, audience: 'l\u2019audience' }).label), 'typographic apostrophe normalised in source label');
+  ok(Object.keys(tariffSource(g0)).join() === 'label', 'source model has only a label');
   eq([frLongDate('2025-08-01'), frLongDate('2024-12-15')], ['1er août 2025', '15 décembre 2024'], 'long dates');
 
+  // full grid tables: every kVA row of the grid, selected kVA flagged, values equal to the grid text
+  for (const kva of [9, 6, 3]) {
+    t = buildTariffs({ from: '2022-02-01', to: '2026-12-31' }, kva, ['base']);
+    for (const sec of t.sections) {
+      const gt = gridText(sec.effective);
+      eq(sec.fullGrid.map((x) => x.offer), ['tempo', 'hchp', 'base'], `full grid tables order ${sec.effective}`);
+      const by = (o) => sec.fullGrid.find((x) => x.offer === o);
+      eq(by('base').rows.map((r) => r.kva), gt.base.map((r) => r.kva), `all Base kVA rows ${sec.effective}`);
+      eq(by('hchp').rows.map((r) => r.kva), gt.hchp.map((r) => r.kva), `all HC kVA rows ${sec.effective}`);
+      eq(by('tempo').rows.map((r) => r.kva), gt.tempo.map((r) => r.kva), `all Tempo kVA rows ${sec.effective}`);
+      eq(by('base').rows.map((r) => r.cells), gt.base.map((r) => [r.sub, r.kwh]), `Base cells ${sec.effective}`);
+      eq(by('hchp').rows.map((r) => r.cells), gt.hchp.map((r) => [r.sub, r.hp, r.hc]), `HC cells ${sec.effective}`);
+      eq(by('tempo').rows.map((r) => r.cells), gt.tempo.map((r) => [r.sub, r.bleuHC, r.bleuHP, r.blancHC, r.blancHP, r.rougeHC, r.rougeHP]), `Tempo cells ${sec.effective}`);
+      for (const tb of sec.fullGrid) {
+        eq(tb.rows.filter((r) => r.selected).map((r) => r.kva), tb.rows.some((r) => r.kva === kva) ? [kva] : [], `selected flag ${tb.offer} ${kva} kVA ${sec.effective}`);
+        ok(tb.rows.every((r) => r.cells.length === tb.columns.length), `column count ${tb.offer} ${sec.effective}`);
+      }
+    }
+  }
+  eq(buildTariffs({ from: '2026-03-01', to: '2026-03-31' }, 9, []).sections[0].fullGrid.length, 3, 'full grid shown even with no offer selected');
+  eq(fullGridTables(arr[0], 3).map((x) => x.caption.split(' — ')[0]), ['Option Tempo', 'Option Heures creuses / Heures pleines', 'Option Base'], 'table captions use the offer labels');
+  eq(fullGridTables(arr[0], 3).find((x) => x.offer === 'hchp').rows.some((r) => r.selected), false, '3 kVA: no HC row to flag in 2022-02');
+
+  // taxes and majorations lines: present when printed, omitted when null
+  const L = (eff) => Object.fromEntries(gridFacts(GRIDS.find((g) => g.effective === eff)).map((f) => [f.label, f.value]));
+  const nb = '\u00a0';
+  let f = L('2026-02-01');
+  eq(f["Accise sur l'électricité (anciennement CSPE)"], `3,085 c€/kWh${nb}HTVA`, 'accise 2026-02');
+  eq(f["TVA sur l'abonnement"], `20${nb}%`, 'VAT subscription 2026-02');
+  eq(f['Majoration pour les auto-producteurs individuels avec injection'], `9,60${nb}€${nb}/${nb}an${nb}HT`, 'injection 2026-02');
+  eq(f["Majoration de l'abonnement : absence de compteur Linky (hors impossibilité technique d'installation)"], `38,90${nb}€${nb}/${nb}an${nb}HT`, 'noLinky 2026-02');
+  eq(f['Puissances Base en extinction'], 'de 9 à 36 kVA (non souscriptibles)', 'extinction 9-36');
+  ok(!("Base de l'extinction" in f), 'no legal basis line when null');
+  f = L('2022-02-01');
+  eq(Object.keys(f).filter((k) => /TCFE|CSPE/.test(k)).length, 2, 'TCFE + CSPE printed in 2022-02');
+  eq(f["Taxes sur la consommation finale d'électricité (TCFE), montant maximum"], `0,663 c€/kWh${nb}HTVA`, 'TCFE 2022 (trailing zero trimmed)');
+  eq(f["TVA sur l'abonnement"], `5,5${nb}%`, 'VAT 5,5 % 2022');
+  eq(f['TVA sur les consommations et les autres taxes'], `20${nb}%`, 'VAT 20 % 2022');
+  eq(Object.keys(f).filter((k) => /Linky/.test(k)).length, 0, 'no Linky line in 2022 (omitted, not 0)');
+  eq(f['Puissances Base en extinction'], 'de 18 à 36 kVA (non souscriptibles)', 'extinction 18-36 in 2022');
+  ok(/Arrêté du 12 août 2010/.test(f["Base de l'extinction"]), 'legal basis 2022');
+  ok(!/\u2019/.test(JSON.stringify(f)), 'no typographic apostrophe in 2022 facts');
+  ok(/l'électricité$/.test(f["Base de l'extinction"]), 'legal basis uses the straight apostrophe');
+  eq(Object.keys(f).filter((k) => /aussi appelée TICFE/.test(k)).length, 0, 'no TICFE alias in 2022');
+  f = L('2023-02-01');
+  eq(Object.keys(f).filter((k) => /Linky/.test(k)).length, 1, 'one Linky line in 2023-02 (no-index only)');
+  ok(!Object.keys(f).some((k) => /TCFE/.test(k)), 'no TCFE line from 2023');
+  f = L('2026-08-01');
+  ok(!('TVA sur la CTA' in f), 'no CTA VAT line in 2026-08 (not printed)');
+  ok(Object.values(f).every((v) => !/(^|[^\d,])0(,00?)?(\s|\u00a0|$)/.test(v) || /kVA|c€/.test(v)), 'no zero values shown');
+  ok(Object.values(L('2024-02-01')).length > 0 && Object.keys(L('2024-02-01')).some((k) => /Accise/.test(k)), 'accise 2024-02 shown');
+  for (const g of GRIDS) {
+    const n = gridFacts(g).length;
+    ok(n >= 6, `facts present for ${g.effective} (${n})`);
+    ok(buildTariffs({ from: g.effective, to: g.effective }, 9, ALL).sections[0].facts.length === n, `section facts = gridFacts ${g.effective}`);
+  }
+
   // formatting
+  eq(F.formatCentsPerKwhHtva(30850), `3,085 c€/kWh${nb}HTVA`, 'HTVA 3,085');
+  eq(F.formatCentsPerKwhHtva(1000), `0,10 c€/kWh${nb}HTVA`, 'HTVA 0,10');
+  eq(F.formatCentsPerKwhHtva(29980), `2,998 c€/kWh${nb}HTVA`, 'HTVA 2,998');
+  eq(F.formatCentsPerKwhHtva(33700), `3,37 c€/kWh${nb}HTVA`, 'HTVA 3,37');
+  eq(F.formatCentsPerKwhHtva(6630), `0,663 c€/kWh${nb}HTVA`, 'HTVA 0,663');
+  eq(F.formatEuroPerYearHt(9600000), `9,60${nb}€${nb}/${nb}an${nb}HT`, 'EUR per year HT');
+  eq(F.formatEuroPerYearHt(50880000), `50,88${nb}€${nb}/${nb}an${nb}HT`, 'EUR per year HT 50,88');
+  eq([F.formatPercent(20), F.formatPercent(5.5)], [`20${nb}%`, `5,5${nb}%`], 'percent');
+  eq([F.formatCentsNumber(192700), F.formatEuroNumber(19560000)], ['19,27', '19,56'], 'plain numbers');
   eq(formatCentsPerKwh(192700), '19,27 c€/kWh', 'kWh format');
   eq(formatCentsPerKwh(1740000 / 10), '17,40 c€/kWh', 'kWh format trailing zero');
   eq(formatCentsPerKwh(729500), '72,95 c€/kWh', 'kWh format rouge HP');

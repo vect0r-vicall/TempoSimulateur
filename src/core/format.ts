@@ -43,3 +43,31 @@ export function formatCentsPerKwh(microPerKwh: number): string {
   const whole = Math.floor(c / 100);
   return `${whole},${String(c - whole * 100).padStart(2, '0')} c€/kWh`;
 }
+
+/** Integer micro-euros per kWh -> "19,27" (two decimals, no unit; for table cells whose header carries the unit). */
+export function formatCentsNumber(microPerKwh: number): string {
+  return formatCentsPerKwh(microPerKwh).replace(' c€/kWh', '');
+}
+
+/** Integer micro-euros -> "19,56" (two decimals, no unit). */
+export function formatEuroNumber(micro: number): string {
+  return formatEuro(micro).replace(' €', '');
+}
+
+/** Integer micro-euros per kWh -> "3,085 c€/kWh HTVA" (no-break space before HTVA; cents with 2 to 4 decimals, trailing zeros trimmed down to 2). */
+export function formatCentsPerKwhHtva(microPerKwh: number): string {
+  const whole = Math.floor(microPerKwh / 10000);
+  let frac = String(microPerKwh - whole * 10000).padStart(4, '0');
+  while (frac.length > 2 && frac.endsWith('0')) frac = frac.slice(0, -1);
+  return `${whole},${frac} c€/kWh HTVA`;
+}
+
+/** Integer micro-euros per year -> "9,60 € / an HT" (no-break spaces, so the value never wraps from its unit). */
+export function formatEuroPerYearHt(micro: number): string {
+  return `${formatEuro(micro)} / an HT`;
+}
+
+/** Percentage -> "5,5 %" / "20 %" (non-breaking space before the sign). */
+export function formatPercent(p: number): string {
+  return `${String(p).replace('.', ',')} %`;
+}
