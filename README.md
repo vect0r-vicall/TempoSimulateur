@@ -7,6 +7,8 @@ le coût de votre consommation est calculé pour chaque offre avec les grilles t
 
 Sous le titre de la vue, la carte du graphique affiche le **total de chaque offre pour la plage réellement affichée** (période sélectionnée, année ou mois détaillé), avec l'offre la moins chère.
 
+En option, une **superposition météo** (désactivée par défaut) ajoute au graphique la tendance de la température du lieu choisi, via Open-Meteo (voir Confidentialité). Elle suit la période appliquée ; la réponse du service est limitée (1 Mo, au plus autant de jours que la période, 25 ans maximum) et la météo des dates trop récentes (environ 5 jours de décalage) peut manquer.
+
 Dans le bloc Période, trois raccourcis (**Toute la période importée**, **Dernière année**, **2 dernières années**) fixent les dates en se terminant au dernier jour valorisé de vos données ; le bouton correspondant à la période appliquée est mis en évidence.
 
 En bas de page, la carte **Tarifs appliqués** (repliée par défaut, un clic sur son titre la déplie) liste les prix EDF réellement utilisés (abonnement et prix du kWh par offre, pour chaque grille couvrant la période) avec leur source, la grille complète de toutes les puissances (repliée par défaut) et les taxes (accise/CSPE, TVA, CTA) et majorations (€ par an HT) imprimées dans chaque grille EDF depuis 2022.

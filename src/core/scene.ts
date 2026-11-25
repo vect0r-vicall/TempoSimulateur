@@ -10,6 +10,7 @@ import { dayNum, isoOf } from './days';
 import { formatEuro, frDate } from './format';
 import { DrillView } from './view';
 import { LegendBlock, OFFER_BAR_NAME, OFFER_TAG, buildLegend } from './legend';
+import { DailyTemp, aggregateTemps, smoothTrend, tempTooltipLine } from './weather';
 
 export type Granularity = 'year' | 'month' | 'day';
 export type SegColour = 'B' | 'W' | 'R' | 'U';
@@ -85,6 +86,14 @@ export interface Group {
   drill: DrillView | null; // click/Enter target (year -> its months, month -> its days); null at day level
 }
 export interface Tick { value: number; y: number; label: string }
+export interface WeatherScene {
+  /** Smoothed bucket-mean trend, split into runs of consecutive buckets with data (nulls break the line). */
+  segments: Array<Array<{ x: number; y: number }>>;
+  ticks: Tick[]; // degC ticks for the right-hand axis (ascending value, y inside the plot)
+  unit: string;
+  legend: string; // '' when there is no temperature to show (no legend entry)
+  note: string; // non-empty French note when the weather has no value for the visible buckets
+}
 export interface Scene {
   width: number;
   height: number;
@@ -100,6 +109,7 @@ export interface Scene {
   legend: LegendBlock[];
   notes: string[];
   summary: string;
+  weather: WeatherScene | null; // null unless a weather overlay was requested and the scene has groups
 }
 
 const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
@@ -146,6 +156,33 @@ export function niceTicks(maxEuro: number): number[] {
   return out;
 }
 
+/** 3..5 nice degC ticks covering [lo, hi]; a flat range is widened so nothing divides by zero. */
+export function tempTicks(lo: number, hi: number): number[] {
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) { lo = 0; hi = 0; }
+  if (!(hi - lo >= 1e-3)) { lo = (lo + hi) / 2 - 1; hi = lo + 2; } // flat or nearly flat: widen
+  let raw = (hi - lo) / 3;
+  for (let guard = 0; guard < 40; guard++) {
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const norm = raw / mag;
+    const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
+    const first = Math.floor(lo / step + 1e-9);
+    const last = Math.ceil(hi / step - 1e-9);
+    if (!Number.isFinite(step) || step <= 0) break;
+    if (last - first + 1 <= 5) {
+      const out: number[] = [];
+      for (let i = first; i <= last; i++) out.push(Math.round(i * step * 1e6) / 1e6);
+      return out;
+    }
+    raw = step * 1.01;
+  }
+  return [-1, 0, 1];
+}
+
+function tempTickLabel(v: number): string {
+  const s = String(Math.abs(v)).replace('.', ',');
+  return v < 0 ? `−${s}` : s;
+}
+
 function tickLabel(v: number): string {
   return Number.isInteger(v) ? `${String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} €` : formatEuro(Math.round(v * 1e6));
 }
@@ -185,6 +222,7 @@ export function buildScene(
   period: Period,
   requested: Granularity,
   size: { width: number; height: number },
+  weather?: DailyTemp[] | null,
 ): Scene {
   const allowDay = dayAllowed(period);
   const dayMessage = allowDay
@@ -198,12 +236,12 @@ export function buildScene(
     if (!offers[o].available) notes.push(`${OFFER_LABEL[o]} : indisponible, aucune barre (${offers[o].reason})`);
   }
 
-  const M = { l: 62, r: 12, t: 22, b: 54 };
+  const M = { l: 62, r: weather ? 52 : 12, t: 22, b: 54 };
   const { width, height } = size;
   const plot = { x: M.l, y: M.t, w: Math.max(50, width - M.l - M.r), h: Math.max(80, height - M.t - M.b) };
   const base: Scene = {
     width, height, plot, granularity: gran, requested, dayAllowed: allowDay, dayMessage, empty: '',
-    groups: [], ticks: [], axisMaxMicro: 0, legend: [], notes, summary: '',
+    groups: [], ticks: [], axisMaxMicro: 0, legend: [], notes, summary: '', weather: null,
   };
   const noBars = { hatchHP: false, unknownColour: false, ratio: false };
   if (sel.length === 0) return { ...base, empty: 'Cochez au moins une offre pour afficher le graphique.' };
@@ -269,6 +307,8 @@ export function buildScene(
   const ratioOffer = (['hchp', 'tempo'] as OfferId[]).find((o) => offers[o].available);
   const shares = shareMap(ratioOffer ? offers[ratioOffer].days : null, gran);
 
+  const byDate = weather ? new Map(weather.map((d) => [d.date, d])) : null;
+  const bucketMeans: Array<number | null> = [];
   const gw = plot.w / order.length;
   const pad = gran === 'day' ? 0 : gw * 0.12;
   const gap = gran === 'day' ? 0 : 2;
@@ -279,6 +319,7 @@ export function buildScene(
   let prevYear = '';
 
   order.forEach((k, i) => {
+    let tempText = '';
     const { first, last } = info.get(k)!;
     let partial = false;
     let label: string;
@@ -352,10 +393,19 @@ export function buildScene(
     }
     const shareText = ratio ? `Heures creuses ${ratio.hcShare} %, heures pleines ${ratio.hpShare} % des kWh` : '';
     if (shareText) lines.push(shareText);
+    if (byDate) {
+      const dates: string[] = [];
+      for (let n = dayNum(first); n <= dayNum(last); n++) dates.push(isoOf(n));
+      const agg = aggregateTemps(byDate, dates);
+      bucketMeans.push(agg.mean);
+      const tl = tempTooltipLine(agg);
+      lines.push(tl);
+      tempText = `${tl}.`;
+    }
     const drill: DrillView | null = gran === 'year' ? { kind: 'year', year: k } : gran === 'month' ? { kind: 'month', month: k } : null;
     const aria =
       `${fullLabel} : ${bars.map((b) => `${OFFER_LABEL[b.offer]} ${formatEuro(b.totalMicro)}`).join(', ')}.${shareText ? ` ${shareText}.` : ''}` +
-      (drill ? ' Entrée pour détailler.' : '');
+      (tempText ? ` ${tempText}` : '') + (drill ? ' Entrée pour détailler.' : '');
     groups.push({
       key: k, label: fullLabel, axisLabel, axisSub, partial, firstDate: first, lastDate: last,
       x: gx, w: gw, cx: gx + gw / 2, bars, ratio, aria, tip: [fullLabel, ...lines], drill,
@@ -369,5 +419,31 @@ export function buildScene(
     `Graphique en barres du coût par ${unit}, du ${frDate(period.from)} au ${frDate(period.to)}. ` +
     avail.map((o) => `${OFFER_LABEL[o]} : ${formatEuro(offers[o].totalMicro)} au total`).join(' ; ') +
     `. ${groups.length} ${groups.length > 1 ? 'groupes' : 'groupe'}.`;
-  return { ...base, groups, ticks, axisMaxMicro: axisMax, legend, notes, summary };
+  let weatherScene: WeatherScene | null = null;
+  if (byDate) {
+    const NO_DATA: WeatherScene = { segments: [], ticks: [], unit: '', legend: '', note: 'Météo non chargée pour cette vue' };
+    try {
+      const trend = smoothTrend(bucketMeans).map((v) => (v !== null && Number.isFinite(v) ? v : null));
+      const vals = trend.filter((v): v is number => v !== null);
+      if (vals.length === 0) weatherScene = NO_DATA;
+      else {
+        const tt = tempTicks(Math.min(...vals), Math.max(...vals));
+        const lo = tt[0]!, hi = tt[tt.length - 1]!;
+        const yT = (v: number) => plot.y + plot.h - ((v - lo) / (hi - lo)) * plot.h;
+        const segments: WeatherScene['segments'] = [];
+        let run: Array<{ x: number; y: number }> = [];
+        trend.forEach((v, i) => {
+          if (v === null) {
+            if (run.length) segments.push(run);
+            run = [];
+          } else run.push({ x: groups[i]!.cx, y: yT(v) });
+        });
+        if (run.length) segments.push(run);
+        weatherScene = { segments, ticks: tt.map((v) => ({ value: v, y: yT(v), label: tempTickLabel(v) })), unit: '°C', legend: 'Tendance de la température (moyenne)', note: '' };
+      }
+    } catch {
+      weatherScene = NO_DATA; // the overlay must never break the chart
+    }
+  }
+  return { ...base, groups, ticks, axisMaxMicro: axisMax, legend, notes, summary, weather: weatherScene };
 }

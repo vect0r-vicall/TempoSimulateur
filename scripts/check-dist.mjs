@@ -63,9 +63,10 @@ ok(ng === NGINX_SNIPPET, 'nginx.conf.snippet equals the generated policy');
 ok(ng.includes(`add_header Content-Security-Policy "${CSP}; frame-ancestors 'none'" always;`), 'nginx CSP identical to _headers');
 const nCsp = /add_header Content-Security-Policy "([^"]*)"/.exec(ng)?.[1] ?? '';
 ok(JSON.stringify(directives(nCsp)) === JSON.stringify([...EXPECTED_DIRECTIVES, "frame-ancestors 'none'"]), 'nginx CSP: connect-src exactly the two origins, nothing else');
-// Bundle: at most one line (exactly one once wired) uses the network API (the allowlisted module, FR-018).
+// Bundle: exactly one line uses the network API (the allowlisted module, FR-018).
 const js = readFileSync('dist/app.js', 'utf8').split('\n').filter((l) => /\bfetch\b/.test(l));
-ok(js.length <= 1 && js.every((l) => /\bfetch\(\s*\w+\s*,\s*\w+\s*\)/.test(l)), `dist/app.js: at most one fetch call site, the allowlisted module (found ${js.length}; becomes exactly 1 once the UI imports src/net/weather.ts)`);
+const jsCount = js.reduce((n, l) => n + (l.match(/\bfetch\b/g) ?? []).length, 0);
+ok(jsCount === 1 && js.every((l) => /\bfetch\(\s*\w+\s*,\s*\w+\s*\)/.test(l)), `dist/app.js: exactly one fetch occurrence, the allowlisted module call site (found ${jsCount})`);
 ok(/^\s*connect-src/.test('connect-src x') && connectOf("default-src 'none'; connect-src a").length === 1, 'self-test: connectOf parses');
 ok(/autoindex off;/.test(ng) && /\(GET\|HEAD\)/.test(ng) && /Permissions-Policy/.test(ng) && /Cross-Origin-Opener-Policy "same-origin"/.test(ng) && /X-Frame-Options "DENY"/.test(ng) && /Cache-Control "no-cache"/.test(ng), 'nginx: autoindex off, GET/HEAD only, extra headers');
 process.exit(bad ? 1 : 0);

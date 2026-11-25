@@ -24,6 +24,7 @@ const MSG = {
   net: 'Service météo injoignable. Vérifiez votre connexion et réessayez.',
   timeout: 'Le service météo ne répond pas (délai dépassé). Réessayez plus tard.',
   http: 'Le service météo a refusé la requête.',
+  http400: 'Requête météo refusée (paramètres ou période non acceptés).',
   big: 'Réponse du service météo trop volumineuse : ignorée.',
   bad: 'Réponse du service météo invalide : ignorée.',
 };
@@ -42,7 +43,9 @@ async function getJson(url: string, fetchFn: FetchFn): Promise<Raw> {
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
   try {
     const res = await fetchFn(url, { method: 'GET', credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store', redirect: 'error', signal: ctl.signal });
-    if (!res.ok) return { ok: false, message: MSG.http };
+    if (!res.ok) return { ok: false, message: res.status === 400 ? MSG.http400 : MSG.http };
+    const len = Number(res.headers?.get('content-length'));
+    if (Number.isFinite(len) && len > MAX_BODY_CHARS) return { ok: false, message: MSG.big };
     const text = await res.text();
     if (text.length > MAX_BODY_CHARS) return { ok: false, message: MSG.big };
     try { return { ok: true, json: JSON.parse(text) as unknown }; } catch { return { ok: false, message: MSG.bad }; }

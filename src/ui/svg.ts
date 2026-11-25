@@ -21,7 +21,26 @@ export interface SvgChart {
   hideTip(): void;
 }
 
-const MAX_TIP_LINES = 8;
+const MAX_TIP_LINES = 9; // title + 3 offers + HC/HP share + temperature, with headroom
+
+/** Right-hand degC axis and smoothed trend line (drawn under the bars' hit areas, never interactive). */
+function s_weather(scene: Scene): SVGGElement | null {
+  const w = scene.weather;
+  if (!w || (w.ticks.length === 0 && w.segments.length === 0)) return null;
+  const { plot } = scene;
+  const g = s('g', {}, 'weather');
+  g.setAttribute('aria-hidden', 'true');
+  const ax = plot.x + plot.w;
+  for (const t of w.ticks) g.append(s('text', { x: ax + 8, y: t.y + 4, 'text-anchor': 'start' }, 'tick tick-temp', t.label));
+  g.append(s('text', { x: ax + 8, y: plot.y - 8, 'text-anchor': 'start' }, 'tick tick-temp unit', w.unit));
+  for (const seg of w.segments) {
+    const d = seg.length === 1
+      ? `M${seg[0]!.x} ${seg[0]!.y}l0 0`
+      : seg.map((p, i) => `${i ? 'L' : 'M'}${Math.round(p.x * 100) / 100} ${Math.round(p.y * 100) / 100}`).join('');
+    for (const cls of ['trend-halo', 'trend-line']) g.append(s('path', { d, fill: 'none', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, cls));
+  }
+  return g;
+}
 
 /** Hover/focus only shows the SVG tooltip; click or Enter/Space on a group calls onDrill. */
 export function renderSvg(scene: Scene, onDrill: (target: DrillView, viaKeyboard: boolean) => void): SvgChart {
@@ -108,6 +127,8 @@ export function renderSvg(scene: Scene, onDrill: (target: DrillView, viaKeyboard
     }
   });
   svg.append(gLayer, labels);
+  const wx = s_weather(scene);
+  if (wx) svg.append(wx);
 
   // tooltip (SVG, text only)
   const tip = s('g', { transform: 'translate(0 0)' }, 'tip');

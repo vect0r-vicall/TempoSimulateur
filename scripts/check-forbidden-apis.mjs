@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Victor Allombert
 // CHECK-4 [AC-10]: scan src/ (*.ts, *.html) and dist/app.js for FR-018 patterns, comments stripped.
 // The ONLY exception: the `fetch` pattern is allowed in the single module src/net/weather.ts (FR-018), where it must occur
-// on exactly one line; in dist/app.js (bundle) on at most one line (zero until the UI imports the module). Every other pattern has no exception.
+// on exactly one line; in dist/app.js (bundle) on exactly one line too (the UI imports the module). Every other pattern has no exception.
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -16,6 +16,7 @@ const PATTERNS = [
   /\bnew\s+Image\b/, /\bAudio\b/, /\bpostMessage\b/, /\bcreateObjectURL\b/, /\bBroadcastChannel\b/,
   /\bglobalThis\b/, /\bReflect\b/, /\.constructor\b/,
   /\b(window|self|globalThis|top|parent|frames)\s*\[/,
+  /\[\s*['"`][^'"`\n]*['"`]\s*\+/, // bracket access built by string concatenation, on any object: x['fet' + 'ch']
   /createElement\(\s*['"](script|a|form|iframe|link|meta|embed|object|base)['"]/,
   /createElementNS\(\s*[^,)]+,\s*['"](script|a|foreignObject|iframe)['"]/,
 ];
@@ -28,7 +29,7 @@ const HOSTILE = [
   'window.open(u)', 'setTimeout("x", 1)', 'setInterval(`x`, 1)',
   'location.href = u', 'navigator.x', 'new RTCPeerConnection()', 'new WebTransport(u)', 'import("x")', 'new Image().src = u',
   'new Audio(u)', 'w.postMessage(d)', 'URL.createObjectURL(b)', 'new BroadcastChannel("c")', 'globalThis.x', 'Reflect.get(a, b)',
-  '(0).constructor.constructor("x")()', 'window["fe" + "tch"]', 'self["x"]', 'globalThis["x"]',
+  '(0).constructor.constructor("x")()', 'window["fe" + "tch"]', 'self["x"]', 'globalThis["x"]', "this['fet' + 'ch'](u)", "o[`fet` +'ch']",
   "document.createElement('script')", 'document.createElement("a")', "document.createElement('form')", "document.createElement('iframe')",
   "document.createElement('link')", "document.createElement('meta')", "document.createElement('embed')", "document.createElement('object')",
   "document.createElement('base')", "document.createElementNS(NS, 'a')",
@@ -85,6 +86,9 @@ const norm = (f) => f.split('\\').join('/');
 function patternsFor(f) {
   return norm(f) === 'dist/app.js' || FETCH_ALLOWLIST.includes(norm(f)) ? PATTERNS.filter((re) => re !== FETCH_RE) : PATTERNS;
 }
+/** Number of occurrences of the fetch token in a line of text (not lines: two calls on one line count twice). */
+const countFetch = (text) => (text.match(new RegExp(FETCH_RE.source, 'g')) ?? []).length;
+if (countFetch('fetch(a); fetch(b)') !== 2 || countFetch('x') !== 0 || countFetch('fetch(u)') !== 1) { console.error('FAIL self-test: countFetch must count occurrences'); process.exit(1); }
 // Self-test of the allowlist: fetch still flagged elsewhere, every other API still flagged in the allowlisted file.
 if (!patternsFor('src/main.ts').includes(FETCH_RE) || !patternsFor('src/net/other.ts').includes(FETCH_RE) || !patternsFor('src/core/weather.ts').includes(FETCH_RE)) {
   console.error('FAIL self-test: fetch must stay forbidden outside the allowlisted module'); process.exit(1);
@@ -105,11 +109,11 @@ for (const f of files) {
   let text = readFileSync(f, 'utf8');
   text = f.endsWith('.html') ? text.replace(/<!--[\s\S]*?-->/g, '') : f.endsWith('.css') ? text.replace(/\/\*[\s\S]*?\*\//g, '') : stripComments(text);
   text.split('\n').forEach((l, i) => {
-    if (exempt && FETCH_RE.test(l)) fetchLines++;
+    if (exempt) fetchLines += countFetch(l);
     for (const re of patternsFor(f)) if (re.test(l)) { bad++; console.error(`FAIL ${f}:${i + 1}: ${re} -> ${l.trim().slice(0, 100)}`); }
   });
-  const max = 1, min = f === 'dist/app.js' ? 0 : 1; // the bundle only contains the module once the UI imports it
-  if (exempt && (fetchLines > max || fetchLines < min)) { bad++; console.error(`FAIL ${f}: expected ${min === max ? 'exactly one' : 'at most one'} line using fetch, found ${fetchLines}`); }
+  const max = 1, min = 1; // exactly one fetch call site, in the source module and in the bundle
+  if (exempt && (fetchLines > max || fetchLines < min)) { bad++; console.error(`FAIL ${f}: expected exactly one occurrence of fetch, found ${fetchLines}`); }
 }
 if (bad) process.exit(1);
 console.log(`ok: no forbidden API in ${files.length} files`);

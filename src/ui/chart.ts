@@ -10,6 +10,7 @@ import { OfferId } from '../core/pricing';
 import { Period } from '../core/period';
 import { Granularity, Scene, buildScene, dayAllowed } from '../core/scene';
 import { LegendBlock, LegendEntry } from '../core/legend';
+import { DailyTemp } from '../core/weather';
 import { View, viewBack, viewGranularity, viewRange, viewTitle, gotoModel, parseGotoValue, DrillView } from '../core/view';
 import { frDate } from '../core/format';
 import { viewRecap } from '../core/viewrecap';
@@ -29,6 +30,7 @@ export interface ChartInput {
   selected: OfferId[];
   priced: Period; // imported (priced) day range
   analyseFor(p: Period): Analysis; // same kVA, other range (drill-down views)
+  weather?: DailyTemp[] | null; // opt-in daily temperatures; null/absent = overlay off
 }
 export interface Chart {
   render(input: ChartInput): void;
@@ -59,6 +61,31 @@ function swatch(e: LegendEntry): SVGSVGElement {
   if (e.hatch) svg.append(mk('url(#hatch)'));
   if (e.dots) svg.append(mk('url(#dots)'));
   return svg;
+}
+
+function weatherLegend(label: string): HTMLElement {
+  const box = node('section', 'legend-block');
+  const h = node('h3', 'legend-title');
+  h.append(node('span', undefined, 'Météo'));
+  const sw = document.createElementNS(NS, 'svg');
+  sw.setAttribute('viewBox', '0 0 28 18');
+  sw.setAttribute('class', 'swatch');
+  sw.setAttribute('aria-hidden', 'true');
+  const line = document.createElementNS(NS, 'path');
+  line.setAttribute('d', 'M2 13L10 6L18 11L26 4');
+  line.setAttribute('fill', 'none');
+  line.setAttribute('stroke-linejoin', 'round');
+  line.setAttribute('stroke-linecap', 'round');
+  line.setAttribute('class', 'trend-line');
+  const halo = line.cloneNode(false) as SVGPathElement;
+  halo.setAttribute('class', 'trend-halo');
+  sw.append(halo, line);
+  const li = node('li', 'legend-item');
+  li.append(sw, node('span', undefined, label));
+  const ul = node('ul', 'legend-list');
+  ul.append(li);
+  box.append(h, ul);
+  return box;
 }
 
 function legendBlock(b: LegendBlock): HTMLElement {
@@ -197,7 +224,7 @@ export function initChart(): Chart {
     const width = Math.max(MIN_WIDTH, Math.min(1200, cw > 0 ? cw : 960));
     const height = Math.round(Math.max(280, Math.min(460, width * 0.44)));
     lastWidth = width;
-    const scene: Scene = buildScene(a.offers, inp.selected, range, viewGranularity(view), { width, height });
+    const scene: Scene = buildScene(a.offers, inp.selected, range, viewGranularity(view), { width, height }, inp.weather);
 
     title.textContent = viewTitle(view, inp.a.period);
     back.hidden = isPeriod;
@@ -239,6 +266,8 @@ export function initChart(): Chart {
     summary.textContent = scene.summary;
     notes.textContent = scene.notes.join(' ');
     for (const b of scene.legend) legend.append(legendBlock(b));
+    if (scene.weather?.legend) legend.append(weatherLegend(scene.weather.legend));
+    if (scene.weather?.note) legend.append(node('p', 'legend-note weather-missing', scene.weather.note));
     if (scene.empty) {
       wrap.append(node('p', 'hint', scene.empty));
       return;

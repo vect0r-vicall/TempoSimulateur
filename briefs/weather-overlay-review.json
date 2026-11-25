@@ -1,0 +1,137 @@
+{
+ "task": "weather-overlay",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "fast",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "assurance": "degraded: roster review bundle not installed; two fresh independent reviewers (security/correctness, spec/UI) executed the gates",
+ "auto_fixes_applied": 0,
+ "findings": [
+  {
+   "severity": "MEDIUM",
+   "path": "src/core/scene.ts",
+   "summary": "tempTicks hangs/throws on near-flat series",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "CHECK-12"
+  },
+  {
+   "severity": "MEDIUM",
+   "path": "src/core/weather.ts",
+   "summary": "MAX_DAYS=800 rejects valid long periods",
+   "specialist": "reviewer-spec",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "window-derived limit; CHECK-12"
+  },
+  {
+   "severity": "MEDIUM",
+   "path": "src/core/scene.ts",
+   "summary": "fake right axis when drilled view has no temperature",
+   "specialist": "reviewer-spec",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "CHECK-11/12"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/core/weather.ts",
+   "summary": "bidi/format characters in place labels",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "CHECK-12"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/app.css",
+   "summary": "trend line contrast over amber bars",
+   "specialist": "reviewer-spec",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "halo path; screenshot verified"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/net/weather.ts",
+   "summary": "1 MB cap applied after buffering",
+   "specialist": "both",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "content-length refused first; full-body buffering remains bounded by the 10 s timeout"
+  },
+  {
+   "severity": "LOW",
+   "path": "scripts/check-forbidden-apis.mjs",
+   "summary": "fetch scan counted lines; concatenated bracket access",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "per-occurrence count and new pattern with self-tests"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/ui/weather.ts",
+   "summary": "status live region display:none toggling",
+   "specialist": "reviewer-spec",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": ""
+  },
+  {
+   "severity": "nit",
+   "path": "src/net/weather.ts",
+   "summary": "HTTP 400 reason not distinguished",
+   "specialist": "reviewer-spec",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "distinct French message"
+  },
+  {
+   "severity": "nit",
+   "path": "src/net/weather.ts",
+   "summary": "cache returns shared mutable object",
+   "specialist": "reviewer-security",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "no caller mutates it"
+  },
+  {
+   "severity": "nit",
+   "path": "src/core/scene.ts",
+   "summary": "aria text reads temperature line verbatim",
+   "specialist": "reviewer-spec",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "acceptable"
+  },
+  {
+   "severity": "INFO",
+   "path": "src/ui/weather.ts",
+   "summary": "weather not refetched for drilled buckets outside applied period",
+   "specialist": "lead",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "documented behaviour: 'M\u00e9t\u00e9o non charg\u00e9e pour cette vue'"
+  }
+ ],
+ "skipped": [
+  "PDF-backed npm test: TEMPO_PDF_DIR unavailable",
+  "review bundle scripts (normalize/convergence/xruntime): not installed (degraded review chosen by user)"
+ ]
+}

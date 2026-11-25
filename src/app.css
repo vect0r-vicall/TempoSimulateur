@@ -174,6 +174,7 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
   --c-base: #f5a524;
   --c-ratio-hc: #38bdf8; --c-ratio-hp: #1e3a8a;
   --grid: #e3e8f3; --axis: #8b97b5; --hatch: rgba(0, 0, 0, .35);
+  --trend: #c2410c; --trend-halo: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -186,6 +187,7 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
     --c-base: #f5a524;
     --c-ratio-hc: #38bdf8; --c-ratio-hp: #93a7f0;
     --grid: #26304f; --axis: #6f7ca0; --hatch: rgba(0, 0, 0, .45);
+    --trend: #fb923c; --trend-halo: #161d31;
   }
 }
 
@@ -234,6 +236,26 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
 .seg-base { fill: var(--c-base); }
 .seg-ratio-hc { fill: var(--c-ratio-hc); } .seg-ratio-hp { fill: var(--c-ratio-hp); }
 .ratio { stroke: none; animation: none; }
+.trend-line { fill: none; stroke: var(--trend); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; opacity: .9; }
+.trend-halo { fill: none; stroke: var(--trend-halo); stroke-width: 5.5; stroke-linejoin: round; stroke-linecap: round; opacity: .85; }
+.chart-svg .weather { pointer-events: none; }
+.chart-svg .tick-temp { fill: var(--trend); }
+.chart-svg .tick-temp.unit { font-weight: 700; }
+.swatch .trend-line { stroke-width: 2.5; }
+.swatch .trend-halo { stroke-width: 5.5; }
+.legend .weather-missing { grid-column: 1 / -1; margin: 0; }
+.weather-box { display: grid; gap: .5rem; }
+.weather-box .check { display: flex; gap: .5rem; align-items: flex-start; }
+.weather-search { display: flex; flex-wrap: wrap; gap: .5rem; align-items: end; }
+.weather-search .field { flex: 1 1 14rem; }
+.weather-places { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+.weather-places:empty { display: none; }
+.weather-places button, .weather-search button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: .35rem .7rem; cursor: pointer; }
+.weather-places button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
+.weather-search button:disabled { opacity: .45; cursor: not-allowed; }
+.weather-status { min-height: 1.3em; margin: 0; }
+.weather-status.error { color: var(--err); }
+.weather-note, .weather-credit { margin: 0; font-size: .85rem; color: var(--muted); }
 .tip { opacity: 0; pointer-events: none; transition: opacity .12s; }
 .tip.on { opacity: 1; }
 .tip-bg { fill: var(--card); stroke: var(--border); stroke-width: 1; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .25)); }

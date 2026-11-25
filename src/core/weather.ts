@@ -3,6 +3,7 @@
 /** Pure weather helpers (FR-033..FR-040): strict validation of Open-Meteo payloads, aggregation, smoothing, French formatting.
  *  No DOM, no network, no clock: civil dates are YYYY-MM-DD strings only. */
 import { isValidIso } from './period';
+import { dayNum } from './days';
 
 export interface DailyTemp { date: string; mean: number | null; min: number | null; max: number | null }
 export interface Place { label: string; latitude: number; longitude: number }
@@ -11,7 +12,8 @@ export interface TempAggregate { mean: number | null; min: number | null; max: n
 export const TEMP_MIN = -90;
 export const TEMP_MAX = 60;
 export const MAX_PLACES = 5;
-export const MAX_DAYS = 800;
+/** Hard ceiling on the days of one archive response (imports span at most 25 years). */
+export const HARD_MAX_DAYS = 25 * 366 + 1;
 const MAX_LABEL = 80;
 
 export type ParsedWeather = { ok: true; days: DailyTemp[]; missing: number } | { ok: false; reason: string };
@@ -27,7 +29,7 @@ export function roundCoord(x: number): number {
 
 function cleanText(s: unknown): string {
   if (typeof s !== 'string') return '';
-  return s.replace(/[\u0000-\u001F\u007F-\u009F<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, MAX_LABEL);
+  return s.replace(/[\u0000-\u001F\u007F-\u009F<>]/g, ' ').replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim().slice(0, MAX_LABEL);
 }
 
 function tempOrNull(v: unknown): number | null {
@@ -42,7 +44,8 @@ export function parseWeatherResponse(json: unknown, startDate: string, endDate: 
   const d = json['daily'];
   const time = d['time'], mean = d['temperature_2m_mean'], min = d['temperature_2m_min'], max = d['temperature_2m_max'];
   if (!Array.isArray(time) || !Array.isArray(mean) || !Array.isArray(min) || !Array.isArray(max)) return bad('arrays');
-  if (time.length > MAX_DAYS) return bad('too many days');
+  const expected = dayNum(endDate) - dayNum(startDate) + 1; // inclusive civil-date span of the requested window
+  if (time.length > expected || time.length > HARD_MAX_DAYS) return bad('too many days');
   if (mean.length !== time.length || min.length !== time.length || max.length !== time.length) return bad('length mismatch');
   const days: DailyTemp[] = [];
   const seen = new Set<string>();
@@ -107,7 +110,7 @@ export function smoothTrend(points: Array<number | null>): Array<number | null> 
       const v = points[j];
       if (v !== null && v !== undefined) { s += v; n++; }
     }
-    return s / n;
+    return Math.round((s / n) * 1e6) / 1e6; // keeps constant series exactly constant
   });
 }
 

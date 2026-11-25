@@ -14,6 +14,8 @@ import { buildTariffs } from './core/tariffs';
 import { renderTariffs } from './ui/tariffs';
 import { renderAssumptions } from './ui/assumptions';
 import { renderPeriods, renderRecap } from './ui/recap';
+import { createWeather, WeatherPanel } from './ui/weather';
+import { DailyTemp } from './core/weather';
 import { el, node } from './ui/dom';
 
 interface State {
@@ -23,6 +25,7 @@ interface State {
   kva: number;
   kvaSource: KvaSource;
   selected: OfferId[];
+  weather: DailyTemp[] | null;
 }
 
 const state: State = {
@@ -32,7 +35,9 @@ const state: State = {
   kva: chooseKva(null, null).kva,
   kvaSource: 'default',
   selected: [...OFFER_IDS],
+  weather: null,
 };
+let weatherPanel: WeatherPanel;
 let controls: Controls;
 let chart: Chart;
 
@@ -73,7 +78,7 @@ function update(): void {
   renderAssumptions(a, state.kvaSource, state.kva, suggested);
   renderTariffs(buildTariffs(state.period, state.kva, state.selected, a));
   const priced = pricedRange(index.days);
-  if (priced) chart.render({ a, selected: state.selected, priced, analyseFor: (p) => analyse(index, p, state.kva) });
+  if (priced) chart.render({ a, selected: state.selected, priced, analyseFor: (p) => analyse(index, p, state.kva), weather: state.weather });
 }
 
 function applyKva(): void {
@@ -101,6 +106,7 @@ async function handleFile(file: File): Promise<void> {
       controls.setRange(range.from, range.to);
       controls.setPeriod(def);
       controls.setMessage('', false);
+      weatherPanel.setPeriod(def);
       setStatus('Fichier d\'index chargé localement.', 'ok');
     } else {
       setStatus('Fichier de puissance max chargé localement.', 'ok');
@@ -128,6 +134,7 @@ function applyPeriod(start: string, end: string, notice: string): void {
   chart.resetView();
   controls.setPeriod(r.period);
   controls.setMessage(r.message || notice, false);
+  weatherPanel.setPeriod(r.period);
   update();
 }
 
@@ -148,6 +155,12 @@ function init(): void {
     },
     onOffers(selected) {
       state.selected = selected;
+      update();
+    },
+  });
+  weatherPanel = createWeather(el<HTMLElement>('controls'), {
+    onData(days) {
+      state.weather = days;
       update();
     },
   });
