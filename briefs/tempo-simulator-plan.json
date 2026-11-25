@@ -1,0 +1,21 @@
+{
+ "task": "tempo-simulator",
+ "mode": "full",
+ "schema_version": "1.0",
+ "steps": [
+  {
+   "id": "step-0",
+   "skill": "roster-implement",
+   "inputs": [
+    "briefs/tempo-simulator-implementer.md"
+   ],
+   "outputs": [],
+   "hook": false
+  }
+ ],
+ "quality_gates": {
+  "build": "npm run build",
+  "test": "npm test",
+  "lint": "npm run lint"
+ }
+}

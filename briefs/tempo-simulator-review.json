@@ -1,0 +1,150 @@
+{
+ "task": "tempo-simulator",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "full",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "auto_fixes_applied": 0,
+ "findings": [],
+ "resolved_this_round": [
+  {
+   "severity": "MEDIUM",
+   "path": "src/core/days.ts",
+   "summary": "unbounded date span => memory/CPU DoS from a tiny CSV",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "security"
+  },
+  {
+   "severity": "MEDIUM",
+   "path": "src/core/session.ts",
+   "summary": "failed import left a half-replaced session",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "security"
+  },
+  {
+   "severity": "MEDIUM",
+   "path": "scripts/check-forbidden-apis.mjs",
+   "summary": "forbidden-API denylist bypassable / missing channels",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "security"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/core/pricing.ts",
+   "summary": "no kWh delta sanity bound (2^53 overflow)",
+   "specialist": "reviewer-logic",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "correctness"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/core/peak.ts",
+   "summary": "suggestKva(0)=3",
+   "specialist": "reviewer-logic",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "correctness"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/core/period.ts",
+   "summary": "period on excluded day accepted as ok",
+   "specialist": "reviewer-logic",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "correctness"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/core/periods.ts",
+   "summary": "quoted CSV cells refused",
+   "specialist": "reviewer-logic",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "correctness"
+  },
+  {
+   "severity": "INFO",
+   "path": "src/core/days.ts",
+   "summary": "period day counts disagree with priced total",
+   "specialist": "reviewer-logic",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "correctness"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/index.html",
+   "summary": "CSP/headers hardening gaps (trusted types, referrer, headers)",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "security"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/ui/svg.ts",
+   "summary": "nested role=img, aria-live on whole recap",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "security"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/core/assumptions.ts",
+   "summary": "French typography",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "security"
+  },
+  {
+   "severity": "INFO",
+   "path": "src/ui/dom.ts",
+   "summary": "filename bidi/length cosmetic",
+   "specialist": "reviewer-security",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "category": "security"
+  }
+ ],
+ "cross_runtime_findings": [],
+ "summary": "2 independent fresh reviewers (logic/spec; security/UI/hostile inputs) built and ran gates (exit 0). No CRITICAL/HIGH. 3 MEDIUM + 7 LOW + 2 INFO all fixed in a fix round and re-verified by the lead (build, npm test incl. new cases, lint, Chromium smoke with demo data: totals unchanged, 4 static requests, 0 console/CSP errors).",
+ "no_go_reason": null,
+ "degraded_review_process": {
+  "reason": "roster review tool bundle not installed in this project (scripts/review-bundle-verify.cjs, check-scope-diff.sh, review-normalize.cjs, check-review-convergence.cjs, xruntime-review.cjs absent)",
+  "skipped": [
+   "bundle-preflight",
+   "scope-gate",
+   "normalizer",
+   "convergence-gate",
+   "cross-runtime-review (opencode on PATH, no wrapper; sending code to another model service not authorised)",
+   "invocation-trace"
+  ],
+  "assurance": "two independent fresh sub-agents; lead re-verified fixes; mechanical gates NOT run"
+ },
+ "escalation_needed": false,
+ "escalation_reason": null
+}
