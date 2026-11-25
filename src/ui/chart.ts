@@ -233,7 +233,7 @@ export function initChart(): Chart {
     differs.hidden = isPeriod;
     differs.textContent = isPeriod
       ? ''
-      : `Cette vue n'est pas limitée à la période sélectionnée (du ${frDate(inp.a.period.from)} au ${frDate(inp.a.period.to)}) : le récapitulatif général de la page continue de décrire cette période.`;
+      : `Les totaux ci-dessous couvrent toute la vue, même au-delà de votre période (du ${frDate(inp.a.period.from)} au ${frDate(inp.a.period.to)}). Le récapitulatif en haut de page, lui, ne compte que cette période.`;
 
     const rec = viewRecap(view, a, inp.selected);
     vrTitle.textContent = rec.title;
