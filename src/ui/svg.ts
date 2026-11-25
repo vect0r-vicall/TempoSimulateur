@@ -141,8 +141,8 @@ export function renderSvg(scene: Scene, onDrill: (target: DrillView, viaKeyboard
     gLayer.append(ge);
     groupEls.push(ge);
     if (g.axisLabel) {
-      labels.append(s('text', { x: g.cx, y: plot.y + plot.h + 28, 'text-anchor': day ? 'start' : 'middle' }, 'xlabel', g.axisLabel));
-      if (g.axisSub) labels.append(s('text', { x: g.cx, y: plot.y + plot.h + 42, 'text-anchor': day ? 'start' : 'middle' }, 'xlabel sub', g.axisSub));
+      labels.append(s('text', { x: g.cx, y: plot.y + plot.h + 28, 'text-anchor': 'middle' }, 'xlabel', g.axisLabel));
+      if (g.axisSub) labels.append(s('text', { x: g.cx, y: plot.y + plot.h + 42, 'text-anchor': 'middle' }, 'xlabel sub', g.axisSub));
     }
   });
   svg.append(gLayer, labels);

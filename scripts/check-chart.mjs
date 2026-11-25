@@ -288,4 +288,42 @@ if (csv && existsSync(csv)) {
   ok(rs.groups.length === months.size && months.size === 13, `demo default period: one group per calendar month (${months.size} months)`);
 } else console.log('skip: set TEMPO_DEMO_DATA=1');
 
+// month axis labels must never overlap: thinned when groups are narrow (3 years in a 1200-unit chart)
+{
+  const long = mk('2023-11-10', 1100);
+  const lp = { from: long[0].date, to: long[1099].date };
+  for (const width of [1200, 960, 520]) {
+    const ls = buildScene(priceOffers(long, 9), ALL, lp, 'month', { width, height: 420 });
+    const shown = ls.groups.filter((g) => g.axisLabel);
+    const minGap = Math.min(...shown.slice(1).map((g, i) => g.cx - shown[i].cx));
+    ok(ls.groups.length > 30 && shown.length >= 2 && minGap >= 38, `month labels do not overlap at width ${width} (${shown.length}/${ls.groups.length} shown, min gap ${Math.round(minGap)})`);
+    ok(ls.groups[0].axisLabel !== '' && ls.groups[0].axisSub !== '', `first month and its year stay labelled at width ${width}`);
+  }
+  const few = buildScene(offers, ALL, period, 'month', SIZE);
+  ok(few.groups.every((g) => g.axisLabel), 'few months: every label shown');
+}
+
+// day axis: day numbers + month captions, never overlapping (30 days up to the longest allowed period)
+{
+  for (const n of [14, 30, 90, 200, 400]) {
+    const dd = mk('2025-11-10', n);
+    const dp = { from: dd[0].date, to: dd[n - 1].date };
+    for (const width of [1200, 960, 520]) {
+      const ds = buildScene(priceOffers(dd, 9), ALL, dp, 'day', { width, height: 420 });
+      if (ds.granularity !== 'day') continue;
+      const nums = ds.groups.filter((g) => g.axisLabel);
+      const caps = ds.groups.filter((g) => g.axisSub);
+      const gap = (a) => Math.min(...a.slice(1).map((g, i) => g.cx - a[i].cx));
+      ok(nums.length >= 1 && (nums.length < 2 || gap(nums) >= 20), `day numbers do not overlap (${n} days, width ${width}: ${nums.length} shown, min gap ${nums.length > 1 ? Math.round(gap(nums)) : '-'})`);
+      const need = (a, b) => ((a.axisSub.length + b.axisSub.length) * 6.4) / 2;
+      ok(caps.slice(1).every((g, i) => g.cx - caps[i].cx >= need(caps[i], g)), `month captions do not overlap (${n} days, width ${width}: ${caps.length} shown)`);
+      ok(ds.groups[0].axisSub !== '' || n >= 90, `view start is captioned when there is room (${n} days, width ${width})`);
+      ok(ds.groups.every((g) => !g.axisLabel || /^\d{1,2}$/.test(g.axisLabel)), 'day labels are plain day numbers');
+    }
+  }
+  const d14 = buildScene(priceOffers(mk('2025-11-10', 14), 9), ALL, { from: '2025-11-10', to: '2025-11-23' }, 'day', SIZE);
+  ok(d14.groups.every((g) => g.axisLabel), '14 days: every day numbered');
+  ok(d14.groups[0].axisSub === 'nov. 2025', `14 days: caption "${d14.groups[0].axisSub}"`);
+}
+
 process.exit(failures ? 1 : 0);

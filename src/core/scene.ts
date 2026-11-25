@@ -125,6 +125,20 @@ export interface Scene {
   weather: WeatherScene | null; // null unless a weather overlay was requested and the scene has groups
 }
 
+/** Narrowest horizontal room one month label ("sept.*") needs, in SVG units. */
+const MONTH_LABEL_W = 38;
+/** Show every n-th month label when groups are too narrow for all of them. */
+export function monthLabelStep(groupW: number): number {
+  return Math.max(1, Math.ceil(MONTH_LABEL_W / Math.max(groupW, 1)));
+}
+/** Day view: room for a day number ("31"), and for a month + year caption ("janv. 2026"), in SVG units. */
+const DAY_LABEL_W = 20;
+const DAY_CAPTION_CHAR_W = 6.4; // bold 11px, per character
+const DAY_CAPTION_GAP = 8;
+/** Show every n-th day number (aligned on the 1st of each month) when day columns are narrow. */
+export function dayLabelStep(groupW: number): number {
+  return Math.max(1, Math.ceil(DAY_LABEL_W / Math.max(groupW, 0.1)));
+}
 const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 const COLOUR_NAME: Record<SegColour, string> = { B: 'bleu', W: 'blanc', R: 'rouge', U: 'couleur inconnue' };
 const TONE_NAME: Record<'HC' | 'HP', string> = { HC: 'heures creuses', HP: 'heures pleines' };
@@ -333,6 +347,9 @@ export function buildScene(
   const byDate = weather ? new Map(weather.map((d) => [d.date, d])) : null;
   const bucketMeans: Array<number | null> = [], bucketMins: Array<number | null> = [], bucketMaxs: Array<number | null> = [];
   const gw = plot.w / order.length;
+  const monthStep = gran === 'month' ? monthLabelStep(gw) : 1;
+  const dayStep = gran === 'day' ? dayLabelStep(gw) : 1;
+  let lastCaptionEnd = -Infinity; // right edge of the previous caption
   const pad = gran === 'day' ? 0 : gw * 0.12;
   const gap = gran === 'day' ? 0 : 2;
   let anyUnknown = false;
@@ -358,16 +375,29 @@ export function buildScene(
       partial = first !== `${k}-01` || last !== `${k}-${String(monthDays(k)).padStart(2, '0')}`;
       const mi = Number(k.slice(5, 7)) - 1;
       label = `${MONTHS[mi]} ${k.slice(0, 4)}`;
-      axisLabel = MONTHS[mi]!;
+      axisLabel = i % monthStep === 0 ? MONTHS[mi]! : '';
       if (k.slice(0, 4) !== prevYear) axisSub = k.slice(0, 4);
       prevYear = k.slice(0, 4);
     } else {
       label = frDate(k);
-      if (k.endsWith('-01')) {
-        axisLabel = MONTHS[Number(k.slice(5, 7)) - 1]!;
-        if (k.slice(0, 4) !== prevYear) axisSub = k.slice(0, 4);
-        prevYear = k.slice(0, 4);
+      const dom = Number(k.slice(8, 10));
+      const mi = Number(k.slice(5, 7)) - 1;
+      const left = monthDays(k.slice(0, 7)) - dom + 1; // days from here to the end of the month
+      // day number: aligned on the 1st, thinned by column width, never crowding the next month's 1st
+      if ((dom - 1) % dayStep === 0 && (dom === 1 || left >= dayStep)) axisLabel = String(dom);
+      // month (+ year) caption under the 1st; also under the first column when there is room before the next 1st
+      const cx = plot.x + i * gw + gw / 2;
+      if (dom === 1 || i === 0) {
+        const text = k.slice(0, 4) !== prevYear || i === 0 ? `${MONTHS[mi]} ${k.slice(0, 4)}` : MONTHS[mi]!;
+        const half = (text.length * DAY_CAPTION_CHAR_W) / 2;
+        const nextStart = cx + left * gw; // where the next month's caption will be centred (roughly)
+        const roomAfter = i !== 0 || nextStart - cx >= 2 * half + DAY_CAPTION_GAP;
+        if (cx - half - DAY_CAPTION_GAP >= lastCaptionEnd && roomAfter) {
+          axisSub = text;
+          lastCaptionEnd = cx + half;
+        }
       }
+      prevYear = k.slice(0, 4);
     }
     if (partial) anyPartial = true;
     const fullLabel = partial ? `${label} (période partielle)` : label;
