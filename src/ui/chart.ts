@@ -144,7 +144,8 @@ export function initChart(): Chart {
   const vrList = node('ul', 'view-offers');
   const vrDays = node('p', 'view-recap-days');
   const vrKwh = node('p', 'view-recap-days');
-  vr.append(vrTitle, vrList, vrDays, vrKwh);
+  const vrTemp = node('p', 'view-recap-days');
+  vr.append(vrTitle, vrList, vrDays, vrKwh, vrTemp);
   const vrStatus = node('p', 'visually-hidden');
   vrStatus.setAttribute('role', 'status');
   vrStatus.setAttribute('aria-live', 'polite');
@@ -236,7 +237,7 @@ export function initChart(): Chart {
       ? ''
       : `Les totaux ci-dessous couvrent toute la vue, même au-delà de votre période (du ${frDate(inp.a.period.from)} au ${frDate(inp.a.period.to)}). Le récapitulatif en haut de page, lui, ne compte que cette période.`;
 
-    const rec = viewRecap(view, a, inp.selected);
+    const rec = viewRecap(view, a, inp.selected, inp.weather);
     vrTitle.textContent = rec.title;
     vrList.replaceChildren();
     for (const r of rec.rows) {
@@ -248,6 +249,8 @@ export function initChart(): Chart {
     }
     vrDays.textContent = rec.daysText;
     vrKwh.textContent = rec.kwhText;
+    vrTemp.replaceChildren(...rec.tempSegs.map((sg) => (sg.cls ? node('span', sg.cls, sg.text) : document.createTextNode(sg.text))));
+    vrTemp.hidden = rec.tempText === '';
     vr.hidden = rec.rows.length === 0;
     if (vrStatus.textContent !== rec.summary) vrStatus.textContent = rec.summary; // avoid re-announcing identical text
 

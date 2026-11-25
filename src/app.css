@@ -387,6 +387,9 @@ input[type="date"]:focus-visible, select:focus-visible, .weather-field input:foc
 .view-offer .badge { font-size: .7rem; padding: .05rem .5rem; }
 .view-offer .offer-reason { font-size: .78rem; color: var(--muted); }
 .view-recap-days { margin: 0; color: var(--muted); font-size: .85rem; }
+.view-recap-days .tt-mean { color: var(--t-mean-text); font-weight: 600; }
+.view-recap-days .tt-min { color: var(--t-min-text); font-weight: 600; }
+.view-recap-days .tt-max { color: var(--t-max-text); font-weight: 600; }
 .tariffs h4 { font-size: .95rem; margin: .9rem 0 .3rem; }
 .tariff-details { margin: .75rem 0 0; }
 .tariff-details > summary { cursor: pointer; font-weight: 600; padding: .3rem 0; }

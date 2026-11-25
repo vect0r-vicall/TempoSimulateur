@@ -1,0 +1,22 @@
+{
+ "task": "view-recap-temperature",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "fast",
+ "assurance": "degraded",
+ "assurance_note": "roster review bundle not installed; independent reviewer subagent ran npm test, lint and a headless-chromium run of the built page; no convergence gate",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "auto_fixes_applied": 0,
+ "findings": [
+  {"severity": "MEDIUM", "path": "scripts/check-viewrecap.mjs", "summary": "summary-ends-with assertion was effectively tautological (A || B with A implying B)", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "LOW", "path": "src/core/viewrecap.ts", "summary": "orphaned and stale JSDoc above viewTemperatureSegments", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "LOW", "path": "scripts/check-viewrecap.mjs", "summary": "DOM wiring checked by source regex only; rendering proven by the one-off browser QA, not part of npm test", "specialist": "reviewer", "status": "DEFERRED", "first_seen_round": 1, "resolved_round": null, "note": "no DOM harness exists in scripts/"},
+  {"severity": "INFO", "path": "src/ui/chart.ts", "summary": "the longer summary is re-announced once when the overlay toggles (polite live region)", "specialist": "reviewer", "status": "DEFERRED", "first_seen_round": 1, "resolved_round": null}
+ ],
+ "cross_runtime_findings": [],
+ "summary": "No CRITICAL/HIGH. Range semantics, date iteration, hidden attribute, coverage text and colour contrast verified, in a real browser for light and dark.",
+ "no_go_reason": null,
+ "escalation_needed": false
+}

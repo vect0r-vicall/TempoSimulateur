@@ -8,6 +8,8 @@ import { OFFER_LABEL } from './pricing';
 import { formatEuro } from './format';
 import { Consumption, consumptionText } from './kwh';
 import { View, monthLabel } from './view';
+import { DailyTemp, Seg, aggregateTemps, segsText, tempTooltipSegments } from './weather';
+import { dayNum, isoOf } from './days';
 
 export interface ViewRecapRow {
   offer: OfferId;
@@ -28,6 +30,8 @@ export interface ViewRecap {
   kwh: Consumption;
   kwhText: string; // 'Consommation : 4 321 kWh (HC 40 % / HP 60 %)'
   daysText: string; // 'N jours valorisés' (+ estimated / excluded only when non-zero)
+  tempText: string; // 'Température : moy. 12,3 °C · min −4,1 · max 31,0' over the viewed days ('' when the weather overlay is off)
+  tempSegs: Seg[]; // the same line as coloured segments (tt-mean / tt-min / tt-max like the tooltip); [] when the overlay is off
   summary: string; // one sentence for screen readers
 }
 
@@ -42,8 +46,18 @@ export function viewRecapTitle(view: View): string {
 
 const plural = (n: number, w: string) => `${n} ${w}${n > 1 ? 's' : ''}`;
 
-/** `a` MUST be the analysis of the range the chart shows for `view` (same object the scene is built from). */
-export function viewRecap(view: View, a: Analysis, selected: OfferId[]): ViewRecap {
+/** Temperature line of the viewed range `[from, to]` as coloured segments: mean of the daily means, min of the mins, max of the maxes, '(N/M jours)' when partial.
+ *  Same aggregation and wording as the chart tooltip; [] without weather (overlay off). */
+export function viewTemperatureSegments(range: { from: string; to: string }, weather: DailyTemp[] | null | undefined): Seg[] {
+  if (!weather) return [];
+  const dates: string[] = [];
+  for (let n = dayNum(range.from); n <= dayNum(range.to); n++) dates.push(isoOf(n));
+  return tempTooltipSegments(aggregateTemps(weather, dates));
+}
+export const viewTemperatureText = (range: { from: string; to: string }, weather: DailyTemp[] | null | undefined): string => segsText(viewTemperatureSegments(range, weather));
+
+/** `a` MUST be the analysis of the range the chart shows for `view` (same object the scene is built from). `weather` (optional) adds the temperature line. */
+export function viewRecap(view: View, a: Analysis, selected: OfferId[], weather?: DailyTemp[] | null): ViewRecap {
   const r: Recap = buildRecap(a, selected);
   const rows = r.rows.map((x) => ({
     offer: x.offer,
@@ -60,6 +74,8 @@ export function viewRecap(view: View, a: Analysis, selected: OfferId[]): ViewRec
   const daysText = parts.join(', ');
   const kwhText = `Consommation : ${consumptionText(r.kwh)}`;
   const title = viewRecapTitle(view);
+  const tempSegs = viewTemperatureSegments(a.period, weather);
+  const tempText = segsText(tempSegs);
   const body = rows.map((x) => `${x.label} ${x.totalText}${x.cheapest ? ' (le moins cher)' : ''}`).join(', ');
   return {
     title,
@@ -71,6 +87,8 @@ export function viewRecap(view: View, a: Analysis, selected: OfferId[]): ViewRec
     kwh: r.kwh,
     kwhText,
     daysText,
-    summary: rows.length ? `${title} : ${body}. ${daysText}. ${kwhText}.` : `${title} : aucune offre sélectionnée.`,
+    tempText,
+    tempSegs,
+    summary: rows.length ? `${title} : ${body}. ${daysText}. ${kwhText}.${tempText ? ` ${tempText}.` : ''}` : `${title} : aucune offre sélectionnée.`,
   };
 }

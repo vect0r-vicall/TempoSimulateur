@@ -115,4 +115,47 @@ ok(r3.rows.filter((r) => r.cheapest).length === (av3.length >= 2 ? 1 : 0) && !r3
 eq(r3.rows[0].reason, a3.offers.tempo.reason, 'reason text is the pricing reason');
 ok(r3.summary.includes('Total de la période sélectionnée') && r3.summary.includes('indisponible'), 'summary names title and unavailability');
 
+// ---- temperature line of the viewed range (FR-063, AC-58) ----
+{
+  const NB = '\u00A0';
+  const { viewTemperatureText } = await import('../.build-test/core/viewrecap.mjs');
+  // 2025-03: daily means 1..31, min = mean - 2, max = mean + 3 (independent expectations)
+  const wx = [];
+  for (let n = num('2025-03-01'); n <= num('2025-03-31'); n++) { const m = n - num('2025-03-01') + 1; wx.push({ date: iso(n), mean: m, min: m - 2, max: m + 3 }); }
+  const mar = { from: '2025-03-01', to: '2025-03-31' };
+  eq(viewTemperatureText(mar, wx), `Température : moy. 16,0${NB}°C · min −1,0 · max 34,0`, 'month: mean of daily means, min of mins, max of maxes');
+  eq(viewTemperatureText(mar, null), '', 'overlay off (null): no line');
+  eq(viewTemperatureText(mar, undefined), '', 'overlay off (undefined): no line');
+  eq(viewTemperatureText({ from: '2025-03-01', to: '2025-04-15' }, wx), `Température : moy. 16,0${NB}°C · min −1,0 · max 34,0 (31/46 jours)`, 'partial coverage shows (N/M jours)');
+  eq(viewTemperatureText({ from: '2025-06-01', to: '2025-06-30' }, wx), 'Température : donnée indisponible', 'range outside the loaded weather: donnée indisponible');
+  // year view: whole year range, partial coverage
+  const yr = V.viewRange({ kind: 'year', year: '2025' }, priced, period);
+  eq(viewTemperatureText(yr, wx), `Température : moy. 16,0${NB}°C · min −1,0 · max 34,0 (31/${num(yr.to) - num(yr.from) + 1} jours)`, 'year view: same aggregation over the viewed year');
+  // wired in the recap: line, summary, and no effect on the other fields
+  const wxm = wx.map((d) => ({ ...d }));
+  const mv = { kind: 'month', month: '2025-03' };
+  const am = analyseFor(V.viewRange(mv, priced, period));
+  const withW = viewRecap(mv, am, ALL, wxm), without = viewRecap(mv, am, ALL);
+  eq(withW.tempText, viewTemperatureText(V.viewRange(mv, priced, period), wxm), 'recap tempText = viewTemperatureText of the view range');
+  eq(without.tempText, '', 'recap without weather: empty tempText');
+  eq(withW.summary, `${without.summary} ${withW.tempText}.`, 'summary = the summary without weather + the temperature sentence');
+  ok(!without.summary.includes('Température'), 'summary without weather has no temperature');
+  eq(JSON.stringify({ ...withW, tempText: '', tempSegs: [], summary: '' }), JSON.stringify({ ...without, tempText: '', tempSegs: [], summary: '' }), 'weather changes nothing but tempText, tempSegs and summary');
+  // custom period view
+  const pvw = viewRecap({ kind: 'period', gran: 'month' }, analyse(imp, { from: '2025-03-01', to: '2025-03-31' }, 9), ALL, wx);
+  eq(pvw.tempText, `Température : moy. 16,0${NB}°C · min −1,0 · max 34,0`, 'custom-period view aggregates over the period');
+  // coloured segments (same classes and tokens as the tooltip)
+  {
+    const segs = withW.tempSegs;
+    eq(segs.map((x) => x.text).join(''), withW.tempText, 'tempSegs concatenate to tempText');
+    eq(JSON.stringify(segs.filter((x) => x.cls).map((x) => x.cls)), JSON.stringify(['tt-mean', 'tt-min', 'tt-max']), 'mean, min and max values carry tt-mean, tt-min, tt-max; labels are neutral');
+    eq(without.tempSegs.length, 0, 'no segments without weather');
+    const css = (await import('node:fs')).readFileSync('src/app.css', 'utf8');
+    ok(/\.view-recap-days \.tt-mean\s*\{[^}]*--t-mean-text/.test(css) && /\.view-recap-days \.tt-min\s*\{[^}]*--t-min-text/.test(css) && /\.view-recap-days \.tt-max\s*\{[^}]*--t-max-text/.test(css), 'CSS: recap line uses the existing contrast-checked temperature text tokens (no new colour)');
+  }
+  // DOM wiring (source check)
+  const chartSrc = (await import('node:fs')).readFileSync('src/ui/chart.ts', 'utf8');
+  ok(/viewRecap\(view, a, inp\.selected, inp\.weather\)/.test(chartSrc) && /vrTemp\.replaceChildren\(\.\.\.rec\.tempSegs/.test(chartSrc) && /vrTemp\.hidden = rec\.tempText === ''/.test(chartSrc), 'chart renders the line from the recap and hides it without weather');
+}
+
 process.exit(failures ? 1 : 0);
