@@ -13,9 +13,16 @@ En bas de page, la carte **Tarifs appliqués** (repliée par défaut, un clic su
 
 ## Confidentialité
 
-Aucune donnée n'est envoyée, stockée ou mémorisée : le fichier est lu localement, rien n'est écrit dans
+Par défaut, aucune donnée n'est envoyée, stockée ou mémorisée : le fichier est lu localement, rien n'est écrit dans
 le navigateur (ni cookie, ni stockage web), et la page ne fait aucune requête réseau en dehors de ses
 propres fichiers statiques. Ni police externe, ni CDN, ni statistiques.
+
+**Seule exception, facultative** : la superposition de la météo (désactivée par défaut). Uniquement après que vous l'avez cochée
+et lancé une recherche de lieu, la page envoie des requêtes GET à deux services Open-Meteo
+(`geocoding-api.open-meteo.com` et `archive-api.open-meteo.com`) : votre adresse IP, la position approximative
+(arrondie à 0,1°, soit environ 11 km) et les dates demandées leur sont alors visibles. Aucun fichier ni consommation n'est
+envoyé, sans cookie ni référent, et rien n'est stocké (cache en mémoire uniquement). Données météo Open-Meteo.com, licence CC BY 4.0
+(usage gratuit non commercial). Le code réseau est isolé dans `src/net/weather.ts`.
 
 ## Construire
 
@@ -43,8 +50,8 @@ Les deux fichiers de `tests/demo-data/` peuvent aussi être glissés dans le sim
 Servez le contenu de `dist/` tel quel (site statique, HTTPS recommandé).
 
 - Le `index.html` embarque une CSP en `<meta>` (première balise du `<head>`) :
-  `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; require-trusted-types-for 'script'`
-  (pas de `connect-src` : aucune connexion n'est autorisée, pas de script ni de style en ligne ; Trusted Types
+  `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://archive-api.open-meteo.com https://geocoding-api.open-meteo.com; base-uri 'none'; form-action 'none'; object-src 'none'; require-trusted-types-for 'script'`
+  (`connect-src` limité exactement aux deux origines Open-Meteo ci-dessus, aucune autre connexion n'est autorisée, pas de script ni de style en ligne ; Trusted Types
   est exigé car le code n'utilise aucun point d'injection HTML/script par chaîne), ainsi que
   `<meta name="referrer" content="no-referrer">`.
 - La balise `<meta>` ne peut pas exprimer `frame-ancestors`, ni `nosniff`, ni les autres en-têtes : il faut de

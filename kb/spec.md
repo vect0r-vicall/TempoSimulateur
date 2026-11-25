@@ -1,7 +1,7 @@
 # TempoSimulateur — Spec (KB)
 
 ## Goal
-Static, fully client-side page comparing EDF Tempo, Heures Creuses/Heures Pleines and Base on a user's EDF index export.
+Static, fully client-side page (no network unless the user opts in to the weather overlay, see specs/tempo-simulator.md FR-018/FR-021/FR-033..) comparing EDF Tempo, Heures Creuses/Heures Pleines and Base on a user's EDF index export.
 
 ## Input
 `mes-index-elec-*.csv`: semicolon-separated, Latin-1, one title line first. Daily cumulative indexes (kWh).
@@ -19,6 +19,9 @@ Tempo, HC/HP, Base. HC/HP and Base use the total/HC-HP split of the same data.
 ## UI (French; code in English)
 Period selector (default last 12 months), offer checkboxes, bar chart by year/month/day with offers side by side,
 bar colour reflects Tempo day colour and HC/HP ratio, period recap summing selected offers.
+
+## Weather overlay (opt-in)
+Optional outdoor-temperature overlay from Open-Meteo (place search, daily archive), shown as tooltip lines, a smoothed trend line and a right-hand degC axis. Never requested before explicit user action; fetch confined to src/net/weather.ts; pure logic in src/core/weather.ts.
 
 ## Core (70/30)
 CSV import, pricing engine, period selector, monthly chart, recap. Then year/day views, colour/ratio overlays, polish.

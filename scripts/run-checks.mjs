@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 
 rmSync('.build-test', { recursive: true, force: true });
 const entries = [];
-for (const dir of ['src/core', 'src/data']) {
+for (const dir of ['src/core', 'src/data', 'src/net']) {
   if (existsSync(dir)) for (const f of readdirSync(dir)) if (f.endsWith('.ts')) entries.push(`${dir}/${f}`);
 }
 await build({
@@ -24,7 +24,7 @@ await build({
 });
 console.log(`bundled ${entries.length} entry points into .build-test/`);
 
-const ORDER = ['import', 'pricing', 'tariffs', 'chart', 'viewrecap', 'shortcuts', 'forbidden-apis', 'dist', 'data'];
+const ORDER = ['import', 'pricing', 'tariffs', 'chart', 'viewrecap', 'shortcuts', 'weather', 'forbidden-apis', 'dist', 'data'];
 const present = readdirSync('scripts').filter((f) => /^check-.*\.mjs$/.test(f)).map((f) => f.slice(6, -4));
 const names = [...ORDER.filter((n) => present.includes(n)), ...present.filter((n) => !ORDER.includes(n)).sort()];
 for (const n of ORDER) if (!present.includes(n)) console.log(`skip: scripts/check-${n}.mjs not present yet`);

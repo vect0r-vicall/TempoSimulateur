@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Victor Allombert
-// CHECK-4 [AC-10]: scan src/ (*.ts, *.html) and dist/app.js for FR-018 patterns, comments stripped, no whitelist.
+// CHECK-4 [AC-10]: scan src/ (*.ts, *.html) and dist/app.js for FR-018 patterns, comments stripped.
+// The ONLY exception: the `fetch` pattern is allowed in the single module src/net/weather.ts (FR-018), where it must occur
+// on exactly one line; in dist/app.js (bundle) on at most one line (zero until the UI imports the module). Every other pattern has no exception.
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -37,7 +39,7 @@ for (const re of PATTERNS) {
 if (!HOSTILE.every((h) => PATTERNS.some((re) => re.test(h)))) { console.error('FAIL self-test: a hostile sample matches no pattern'); process.exit(1); }
 
 /** Strip // and block comments, honouring string, template and regex literals. */
-export function stripComments(src) {
+function stripComments(src) {
   let out = '';
   let i = 0;
   let prev = ''; // last significant char
@@ -76,6 +78,21 @@ function walk(dir, acc = []) {
   return acc;
 }
 
+const FETCH_RE = PATTERNS[0];
+const FETCH_ALLOWLIST = ['src/net/weather.ts'];
+const norm = (f) => f.split('\\').join('/');
+/** Patterns that apply to file f: all of them, except `fetch` in the allowlisted module and in the bundle. */
+function patternsFor(f) {
+  return norm(f) === 'dist/app.js' || FETCH_ALLOWLIST.includes(norm(f)) ? PATTERNS.filter((re) => re !== FETCH_RE) : PATTERNS;
+}
+// Self-test of the allowlist: fetch still flagged elsewhere, every other API still flagged in the allowlisted file.
+if (!patternsFor('src/main.ts').includes(FETCH_RE) || !patternsFor('src/net/other.ts').includes(FETCH_RE) || !patternsFor('src/core/weather.ts').includes(FETCH_RE)) {
+  console.error('FAIL self-test: fetch must stay forbidden outside the allowlisted module'); process.exit(1);
+}
+for (const h of HOSTILE.filter((x) => !FETCH_RE.test(x))) {
+  if (!patternsFor('src/net/weather.ts').some((re) => re.test(h))) { console.error(`FAIL self-test: ${h} not flagged in allowlisted file`); process.exit(1); }
+}
+
 const files = [];
 if (existsSync('src')) files.push(...walk('src').filter((f) => /\.(ts|js|mjs|html|css)$/.test(f)));
 if (!existsSync('dist/app.js')) { console.error('dist/app.js missing: run npm run build first'); process.exit(2); }
@@ -83,11 +100,16 @@ files.push('dist/app.js');
 
 let bad = 0;
 for (const f of files) {
+  const exempt = patternsFor(f).length !== PATTERNS.length;
+  let fetchLines = 0;
   let text = readFileSync(f, 'utf8');
   text = f.endsWith('.html') ? text.replace(/<!--[\s\S]*?-->/g, '') : f.endsWith('.css') ? text.replace(/\/\*[\s\S]*?\*\//g, '') : stripComments(text);
   text.split('\n').forEach((l, i) => {
-    for (const re of PATTERNS) if (re.test(l)) { bad++; console.error(`FAIL ${f}:${i + 1}: ${re} -> ${l.trim().slice(0, 100)}`); }
+    if (exempt && FETCH_RE.test(l)) fetchLines++;
+    for (const re of patternsFor(f)) if (re.test(l)) { bad++; console.error(`FAIL ${f}:${i + 1}: ${re} -> ${l.trim().slice(0, 100)}`); }
   });
+  const max = 1, min = f === 'dist/app.js' ? 0 : 1; // the bundle only contains the module once the UI imports it
+  if (exempt && (fetchLines > max || fetchLines < min)) { bad++; console.error(`FAIL ${f}: expected ${min === max ? 'exactly one' : 'at most one'} line using fetch, found ${fetchLines}`); }
 }
 if (bad) process.exit(1);
 console.log(`ok: no forbidden API in ${files.length} files`);

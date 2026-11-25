@@ -2,8 +2,10 @@
 // SPDX-FileCopyrightText: 2026 Victor Allombert
 // Single source of truth for the CSP and the HTTP security headers.
 // Used by build.mjs (index.html meta, dist/_headers, nginx.conf.snippet) and by check-dist.mjs.
+// connect-src: exactly the two Open-Meteo origins of the opt-in weather overlay (FR-021); no wildcard, no other origin.
+export const CONNECT_ORIGINS = ['https://archive-api.open-meteo.com', 'https://geocoding-api.open-meteo.com'];
 export const CSP =
-  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; require-trusted-types-for 'script'";
+  `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src ${CONNECT_ORIGINS.join(' ')}; base-uri 'none'; form-action 'none'; object-src 'none'; require-trusted-types-for 'script'`;
 
 // Header CSP = meta CSP + directives a <meta> cannot carry.
 export const HEADER_CSP = `${CSP}; frame-ancestors 'none'`;
