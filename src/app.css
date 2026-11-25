@@ -126,6 +126,15 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
 .kva-note { font-size: .85rem; color: var(--muted); }
 .check { display: flex; align-items: center; gap: .5rem; margin: .35rem 0; cursor: pointer; }
 .check input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
+.shortcuts { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 .75rem; }
+.shortcut {
+  font: inherit; font-size: .9rem; color: var(--text); background: var(--card); cursor: pointer;
+  border: 1px solid var(--border); border-radius: 999px; padding: .35rem .8rem;
+  transition: background .15s, border-color .15s;
+}
+.shortcut:hover:not(:disabled):not([aria-pressed="true"]) { background: var(--accent-soft); border-color: var(--accent); }
+.shortcut[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+.shortcut:disabled { opacity: .5; cursor: not-allowed; }
 .period-msg { min-height: 1.2rem; margin: .5rem 0 0; font-size: .9rem; color: var(--muted); }
 .period-msg.error { color: var(--err); background: var(--err-bg); padding: .4rem .6rem; border-radius: 8px; }
 .loaded { list-style: none; padding: 0; margin: .5rem 0 0; color: var(--muted); font-size: .9rem; }

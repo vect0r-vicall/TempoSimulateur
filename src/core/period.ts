@@ -60,3 +60,45 @@ export function resolvePeriod(days: DayConsumption[], start: string, end: string
     message: clamped ? `Période ajustée aux données disponibles : du ${frDate(from)} au ${frDate(to)}.` : '',
   };
 }
+
+export type ShortcutId = 'all' | 'year' | 'two-years';
+export const SHORTCUT_IDS: readonly ShortcutId[] = ['all', 'year', 'two-years'];
+const SHORTCUT_DAYS: Record<ShortcutId, number | null> = { all: null, year: 365, 'two-years': 730 };
+
+export interface ShortcutPeriod extends Period {
+  /** True when the requested length exceeds the imported data and the start was moved to the first priced day. */
+  clamped: boolean;
+  /** Calendar days from the first to the last priced day, both included. */
+  availableDays: number;
+}
+
+/**
+ * Period shortcut windows. Each ends on the LAST priced day (never the clock): 'all' is the full priced range,
+ * 'year' the 365 days ending there (= defaultPeriod), 'two-years' the 730 days. Longer than the data: clamped
+ * to the first priced day. Null when there is no priced day.
+ */
+export function shortcutPeriods(days: DayConsumption[]): Record<ShortcutId, ShortcutPeriod> | null {
+  const r = pricedRange(days);
+  if (!r) return null;
+  const availableDays = dayNum(r.to) - dayNum(r.from) + 1;
+  const make = (id: ShortcutId): ShortcutPeriod => {
+    const len = SHORTCUT_DAYS[id];
+    if (len === null || len >= availableDays) return { from: r.from, to: r.to, clamped: len !== null && len > availableDays, availableDays };
+    return { from: isoOf(dayNum(r.to) - (len - 1)), to: r.to, clamped: false, availableDays };
+  };
+  return { all: make('all'), year: make('year'), 'two-years': make('two-years') };
+}
+
+/** Shortcuts whose window equals the applied period (several when the data is short). */
+export function pressedShortcuts(days: DayConsumption[], period: Period | null): ShortcutId[] {
+  const sp = shortcutPeriods(days);
+  if (!sp || !period) return [];
+  return SHORTCUT_IDS.filter((id) => sp[id].from === period.from && sp[id].to === period.to);
+}
+
+/** French notice shown on the period message line when a shortcut window was clamped; '' otherwise. */
+export function shortcutMessage(sp: ShortcutPeriod): string {
+  return sp.clamped
+    ? `Les données importées ne couvrent que ${sp.availableDays} jour${sp.availableDays > 1 ? 's' : ''} : période ajustée du ${frDate(sp.from)} au ${frDate(sp.to)}.`
+    : '';
+}

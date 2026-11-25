@@ -3,7 +3,7 @@
 import { parseIndexCsv, MAX_BYTES } from './core/csv';
 import { ImportError } from './core/types';
 import { Session, chooseKva, ingestFile, newSession } from './core/session';
-import { Period, defaultPeriod, pricedRange, resolvePeriod } from './core/period';
+import { Period, defaultPeriod, pressedShortcuts, pricedRange, resolvePeriod, shortcutMessage, shortcutPeriods } from './core/period';
 import { Analysis, analyse, buildRecap } from './core/recap';
 import { OFFER_IDS, OfferId } from './core/pricing';
 import { KvaSource, kvaSourceLabel } from './core/assumptions';
@@ -58,6 +58,7 @@ function update(): void {
   const section = el<HTMLElement>('analysis');
   const suggested = state.session.peak ? state.session.peak.suggestedKva : null;
   const index = state.session.index;
+  controls.setShortcuts(!!index && !!state.period, index ? pressedShortcuts(index.days, state.period) : []);
   if (!index || !state.period) {
     section.hidden = true;
     renderTariffs(null);
@@ -113,22 +114,32 @@ async function handleFile(file: File): Promise<void> {
   }
 }
 
+/** Single path for every period change (date inputs and shortcuts); `notice` replaces an empty resolve message. */
+function applyPeriod(start: string, end: string, notice: string): void {
+  const index = state.session.index;
+  if (!index) return;
+  const r = resolvePeriod(index.days, start, end);
+  if (!r.ok) {
+    controls.setMessage(r.error, true);
+    if (state.period) controls.setPeriod(state.period);
+    return;
+  }
+  state.period = r.period;
+  chart.resetView();
+  controls.setPeriod(r.period);
+  controls.setMessage(r.message || notice, false);
+  update();
+}
+
 function init(): void {
   controls = createControls({
     onPeriod(start, end) {
+      applyPeriod(start, end, '');
+    },
+    onShortcut(id) {
       const index = state.session.index;
-      if (!index) return;
-      const r = resolvePeriod(index.days, start, end);
-      if (!r.ok) {
-        controls.setMessage(r.error, true);
-        if (state.period) controls.setPeriod(state.period);
-        return;
-      }
-      state.period = r.period;
-      chart.resetView();
-      controls.setPeriod(r.period);
-      controls.setMessage(r.message, false);
-      update();
+      const sp = index ? shortcutPeriods(index.days) : null;
+      if (sp) applyPeriod(sp[id].from, sp[id].to, shortcutMessage(sp[id]));
     },
     onKva(kva) {
       state.manualKva = kva;
