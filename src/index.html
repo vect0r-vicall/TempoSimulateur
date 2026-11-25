@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- SPDX-FileCopyrightText: 2026 Victor Allombert -->
+<html lang="fr">
+<head>
+<meta http-equiv="Content-Security-Policy" content="__CSP__">
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>TempoSimulateur</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="site-header">
+  <h1><span class="logo" aria-hidden="true">&#9889;</span> TempoSimulateur</h1>
+  <p class="tagline">Comparez Tempo, Heures Creuses/Heures Pleines et Base sur votre consommation r&eacute;elle. Tout est calcul&eacute; dans votre navigateur&nbsp;: aucune donn&eacute;e n'est envoy&eacute;e.</p>
+</header>
+<noscript><p class="noscript">Cette application a besoin de JavaScript pour lire votre fichier et calculer les co&ucirc;ts. Aucune donn&eacute;e ne quitte votre navigateur.</p></noscript>
+<main>
+  <section aria-labelledby="import-title" class="card">
+    <h2 id="import-title">1. Importez votre fichier d'index EDF</h2>
+    <div id="dropzone" class="dropzone">
+      <p class="dz-title">D&eacute;posez ici votre fichier <code>mes-index-elec-&hellip;.csv</code></p>
+      <p class="dz-sub">ou</p>
+      <label class="btn" for="file-input">Choisir un fichier</label>
+      <input id="file-input" class="visually-hidden" type="file" accept=".csv,text/csv" multiple>
+      <p class="dz-hint">Fichier lu localement (5&nbsp;Mo maximum, 20&nbsp;000 lignes). Vous pouvez aussi d&eacute;poser <code>ma-puissance-max-&hellip;.csv</code> (facultatif) pour d&eacute;duire votre puissance souscrite.</p>
+    </div>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <ul id="loaded" class="loaded"></ul>
+  </section>
+  <div id="analysis" hidden>
+    <section aria-labelledby="controls-title" class="card">
+      <h2 id="controls-title">2. Choisissez la p&eacute;riode, la puissance et les offres</h2>
+      <div id="controls" class="controls"></div>
+    </section>
+    <section id="recap" class="card">
+      <p id="recap-summary" class="visually-hidden" role="status" aria-live="polite"></p>
+      <div id="recap-body"></div>
+    </section>
+    <section id="chart" class="card"></section>
+    <section id="periods" class="card"></section>
+  </div>
+  <aside id="assumptions" class="card assumptions" aria-label="Hypoth&egrave;ses"></aside>
+</main>
+<footer class="site-footer"><p>Simulation indicative, sans valeur contractuelle.</p></footer>
+<script src="app.js"></script>
+</body>
+</html>
