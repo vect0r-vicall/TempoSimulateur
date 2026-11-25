@@ -135,7 +135,7 @@ ok(sc.groups.every((g) => g.bars.every((b) => b.y >= sc.plot.y - 1e-6)), 'bars s
 
 // French aria with euros
 const g = sc.groups[3];
-ok(/€/.test(g.aria) && /Heures creuses \d+ %, heures pleines \d+ %/.test(g.aria), `group aria French with euros and share: ${g.aria}`);
+ok(/€/.test(g.aria) && /Consommation : [\d\u202f]+\u00a0kWh \(HC [\d\u202f]+\u00a0kWh, \d+\u00a0% · HP [\d\u202f]+\u00a0kWh, \d+\u00a0%\)/.test(g.aria) && !/des kWh/.test(g.aria) && !g.tip.some((l) => /^Heures creuses \d+/.test(l)), `group aria French with euros and the merged consumption/share sentence (no separate share line): ${g.aria}`);
 ok(g.bars.every((b) => /€/.test(b.aria) && /total/.test(b.aria)), 'bar aria contains euros');
 ok(g.bars.some((b) => b.aria.startsWith('Heures creuses / Heures pleines')) && g.bars.some((b) => b.aria.startsWith('Tempo')), 'aria names the offer');
 ok(/Graphique en barres/.test(sc.summary) && /€/.test(sc.summary), 'summary French with euros');

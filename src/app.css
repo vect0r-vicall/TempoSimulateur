@@ -99,6 +99,7 @@ code { background: var(--accent-soft); padding: .1em .35em; border-radius: 6px; 
 }
 .stats .num { display: block; font-size: 1.5rem; font-weight: 700; }
 .stats .lbl { color: var(--muted); font-size: .85rem; }
+.recap-kwh { margin: 0 0 .5rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .noscript {
   max-width: 60rem; margin: 1rem auto; padding: .8rem 1rem;
   background: var(--err-bg); color: var(--err); border-radius: 10px;
@@ -299,6 +300,7 @@ input[type="date"]:focus-visible, select:focus-visible, .weather-field input:foc
 .chart-svg .tip-text .tt-max { fill: var(--t-max-text); font-weight: 600; }
 .chart-svg .tip-text .tt-wind { fill: var(--t-wind-text); font-weight: 600; }
 .chart-svg .tip-text .tt-strong { font-weight: 700; }
+.chart-svg .tip-text .tt-kwh { font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { .chart-svg .bar .seg { animation: none; } }
 
 /* polish */

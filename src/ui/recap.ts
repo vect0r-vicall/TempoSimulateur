@@ -4,6 +4,7 @@ import { Analysis, Recap } from '../core/recap';
 import { OFFER_LABEL } from '../core/pricing';
 import { ESTIMATE_NOTICE } from '../core/assumptions';
 import { formatEuro, frDate, frDateList } from '../core/format';
+import { consumptionText } from '../core/kwh';
 import { PeriodInfo } from '../core/types';
 import { el, node } from './dom';
 
@@ -45,6 +46,7 @@ export function renderRecap(a: Analysis, r: Recap): void {
   };
   stats.append(stat(r.pricedDays, 'jours valorisés'), stat(r.estimatedDays, 'jours estimés'), stat(r.excludedDays, 'jours exclus'));
   root.append(stats);
+  root.append(node('p', 'recap-kwh', `Consommation sur la période : ${consumptionText(r.kwh)}`));
 
   if (r.calendarEstimate) root.append(node('p', 'notice', `Attention, ${ESTIMATE_NOTICE}.`));
 }

@@ -6,6 +6,7 @@ import { buildRecap } from './recap';
 import type { OfferId } from './pricing';
 import { OFFER_LABEL } from './pricing';
 import { formatEuro } from './format';
+import { Consumption, consumptionText } from './kwh';
 import { View, monthLabel } from './view';
 
 export interface ViewRecapRow {
@@ -24,6 +25,8 @@ export interface ViewRecap {
   pricedDays: number;
   estimatedDays: number;
   excludedDays: number;
+  kwh: Consumption;
+  kwhText: string; // 'Consommation : 4 321 kWh (HC 40 % / HP 60 %)'
   daysText: string; // 'N jours valorisés' (+ estimated / excluded only when non-zero)
   summary: string; // one sentence for screen readers
 }
@@ -55,6 +58,7 @@ export function viewRecap(view: View, a: Analysis, selected: OfferId[]): ViewRec
   if (r.estimatedDays > 0) parts.push(`${plural(r.estimatedDays, 'jour')} estimé${r.estimatedDays > 1 ? 's' : ''}`);
   if (r.excludedDays > 0) parts.push(`${plural(r.excludedDays, 'jour')} exclu${r.excludedDays > 1 ? 's' : ''}`);
   const daysText = parts.join(', ');
+  const kwhText = `Consommation : ${consumptionText(r.kwh)}`;
   const title = viewRecapTitle(view);
   const body = rows.map((x) => `${x.label} ${x.totalText}${x.cheapest ? ' (le moins cher)' : ''}`).join(', ');
   return {
@@ -64,7 +68,9 @@ export function viewRecap(view: View, a: Analysis, selected: OfferId[]): ViewRec
     pricedDays: r.pricedDays,
     estimatedDays: r.estimatedDays,
     excludedDays: r.excludedDays,
+    kwh: r.kwh,
+    kwhText,
     daysText,
-    summary: rows.length ? `${title} : ${body}. ${daysText}.` : `${title} : aucune offre sélectionnée.`,
+    summary: rows.length ? `${title} : ${body}. ${daysText}. ${kwhText}.` : `${title} : aucune offre sélectionnée.`,
   };
 }

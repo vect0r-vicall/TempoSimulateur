@@ -143,7 +143,8 @@ export function initChart(): Chart {
   vr.setAttribute('aria-labelledby', 'view-recap-title');
   const vrList = node('ul', 'view-offers');
   const vrDays = node('p', 'view-recap-days');
-  vr.append(vrTitle, vrList, vrDays);
+  const vrKwh = node('p', 'view-recap-days');
+  vr.append(vrTitle, vrList, vrDays, vrKwh);
   const vrStatus = node('p', 'visually-hidden');
   vrStatus.setAttribute('role', 'status');
   vrStatus.setAttribute('aria-live', 'polite');
@@ -226,7 +227,7 @@ export function initChart(): Chart {
     const width = Math.max(MIN_WIDTH, Math.min(1200, cw > 0 ? cw : 960));
     const height = Math.round(Math.max(280, Math.min(460, width * 0.44)));
     lastWidth = width;
-    const scene: Scene = buildScene(a.offers, inp.selected, range, viewGranularity(view), { width, height }, inp.weather);
+    const scene: Scene = buildScene(a.offers, inp.selected, range, viewGranularity(view), { width, height }, inp.weather, a.rawDays);
 
     title.textContent = viewTitle(view, inp.a.period);
     back.hidden = isPeriod;
@@ -246,6 +247,7 @@ export function initChart(): Chart {
       vrList.append(li);
     }
     vrDays.textContent = rec.daysText;
+    vrKwh.textContent = rec.kwhText;
     vr.hidden = rec.rows.length === 0;
     if (vrStatus.textContent !== rec.summary) vrStatus.textContent = rec.summary; // avoid re-announcing identical text
 

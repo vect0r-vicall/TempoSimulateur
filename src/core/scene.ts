@@ -8,7 +8,9 @@ import { DayOfferCost, OFFER_IDS, OFFER_LABEL, OfferId, Offers } from './pricing
 import { Period } from './period';
 import { dayNum, isoOf } from './days';
 import { formatEuro, frDate } from './format';
+import { Consumption, consumptionSegments, sumConsumption } from './kwh';
 import { DrillView } from './view';
+import { DayConsumption } from './types';
 import { LegendBlock, OFFER_BAR_NAME, OFFER_TAG, buildLegend } from './legend';
 import { DailyTemp, Seg, WeatherIconKind, aggregateTemps, aggregateWind, segsText, smoothTrend, tempTooltipSegments, weatherIconKind, weatherTooltipSegments, windTooltipSegments } from './weather';
 
@@ -234,6 +236,7 @@ export function buildScene(
   requested: Granularity,
   size: { width: number; height: number },
   weather?: DailyTemp[] | null,
+  rawDays?: DayConsumption[],
 ): Scene {
   const allowDay = dayAllowed(period);
   const dayMessage = allowDay
@@ -317,6 +320,15 @@ export function buildScene(
   // ratio source: HC/HP offer first, then Tempo
   const ratioOffer = (['hchp', 'tempo'] as OfferId[]).find((o) => offers[o].available);
   const shares = shareMap(ratioOffer ? offers[ratioOffer].days : null, gran);
+  // consumption is a property of the data, identical across offers: read from the raw priced days (Analysis.rawDays), as the recaps do;
+  // without them (callers holding only offers) fall back to the first available offer's days, which has no HC/HP split for Base alone
+  const kwhDays = new Map<string, Array<{ kwh: Partial<Record<string, number>> }>>();
+  for (const d of rawDays ?? offers[ratioOffer ?? avail[0]!].days) {
+    const k = keyOf(d.date, gran);
+    const l = kwhDays.get(k);
+    if (l) l.push(d);
+    else kwhDays.set(k, [d]);
+  }
 
   const byDate = weather ? new Map(weather.map((d) => [d.date, d])) : null;
   const bucketMeans: Array<number | null> = [], bucketMins: Array<number | null> = [], bucketMaxs: Array<number | null> = [];
@@ -406,8 +418,11 @@ export function buildScene(
       };
       anyRatio = true;
     }
-    const shareText = ratio ? `Heures creuses ${ratio.hcShare} %, heures pleines ${ratio.hpShare} % des kWh` : '';
-    if (shareText) { lines.push(shareText); rich.push([{ text: shareText }]); }
+    const cons: Consumption = sumConsumption(kwhDays.get(k) ?? []);
+    const consSegs = consumptionSegments(cons);
+    const consText = segsText(consSegs);
+    lines.push(consText);
+    rich.push(consSegs);
     if (byDate) {
       const dates: string[] = [];
       for (let n = dayNum(first); n <= dayNum(last); n++) dates.push(isoOf(n));
@@ -435,7 +450,7 @@ export function buildScene(
     }
     const drill: DrillView | null = gran === 'year' ? { kind: 'year', year: k } : gran === 'month' ? { kind: 'month', month: k } : null;
     const aria =
-      `${fullLabel} : ${bars.map((b) => `${OFFER_LABEL[b.offer]} ${formatEuro(b.totalMicro)}`).join(', ')}.${shareText ? ` ${shareText}.` : ''}` +
+      `${fullLabel} : ${bars.map((b) => `${OFFER_LABEL[b.offer]} ${formatEuro(b.totalMicro)}`).join(', ')}.${consText}.` +
       (tempText ? ` ${tempText}` : '') + (drill ? ' Entrée pour détailler.' : '');
     groups.push({
       key: k, label: fullLabel, axisLabel, axisSub, partial, firstDate: first, lastDate: last,

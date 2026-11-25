@@ -1,0 +1,68 @@
+{
+ "task": "chart-kwh-hover",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "express",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "assurance": "degraded: review bundle not installed; one fresh reviewer ran gates, recomputed every year/month/day value independently from the demo CSV, ran mutants, rendered in Chromium",
+ "auto_fixes_applied": 1,
+ "findings": [
+  {
+   "severity": "LOW",
+   "path": "src/core/scene.ts",
+   "summary": "tooltip kWh read from an offer: no HC/HP split at 3 kVA (Base only) while recaps show it",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "bucket kWh from raw priced days; 3 kVA assertions in CHECK-17"
+  },
+  {
+   "severity": "nit",
+   "path": "src/core/kwh.ts",
+   "summary": "regular space before % in recap sentence",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "formatPercent NBSP"
+  },
+  {
+   "severity": "nit",
+   "path": "src/ui/svg.ts",
+   "summary": "merged consumption line only ~4px from tooltip border",
+   "specialist": "lead",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "width factor 6.3 -> 6.6 px/char"
+  },
+  {
+   "severity": "nit",
+   "path": "src/ui/svg.ts",
+   "summary": "390px: tooltip clipped at container edge on wind line",
+   "specialist": "reviewer",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "pre-existing"
+  },
+  {
+   "severity": "nit",
+   "path": "src/core/scene.ts",
+   "summary": "ratio bar absent at 3 kVA while tooltip shows the split",
+   "specialist": "fix agent",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "minor, bar reads from offers"
+  }
+ ],
+ "skipped": [
+  "PDF-backed npm test: TEMPO_PDF_DIR unavailable",
+  "review bundle scripts: not installed",
+  "qa phase: express mode"
+ ]
+}

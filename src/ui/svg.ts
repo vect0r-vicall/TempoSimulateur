@@ -29,7 +29,7 @@ function iconEl(d: IconEl): SVGElement {
   return e;
 }
 
-const MAX_TIP_LINES = 9; // longest tooltip: title + 3 offers + HC/HP share + weather + temperature + wind = 8, plus one spare
+const MAX_TIP_LINES = 9; // longest tooltip: title + 3 offers + consumption + weather + temperature + wind = 8, plus one spare
 
 /** Right-hand degC axis and smoothed trend line (drawn under the bars' hit areas, never interactive). */
 function s_weather(scene: Scene): SVGGElement | null {
@@ -172,7 +172,7 @@ export function renderSvg(scene: Scene, onDrill: (target: DrillView, viaKeyboard
         else t.append(document.createTextNode(seg.text));
       }
     });
-    const w = Math.ceil(Math.max(...txt.map((x) => x.length)) * 6.3 + 16);
+    const w = Math.ceil(Math.max(...txt.map((x) => x.length)) * 6.6 + 16);
     const h = txt.length * 15 + 8;
     bg.setAttribute('width', String(w));
     bg.setAttribute('height', String(h));

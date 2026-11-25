@@ -1,0 +1,7 @@
+# Implementation Brief — chart-kwh-hover
+**Mode:** express  **Status:** COMPLETED
+Tooltip line 'Consommation : N kWh (HC x · HP y)' (once per bucket, after the share line, before Météo/Température/Vent), period recap line 'Consommation sur la période : N kWh (HC x % / HP y %)' and view-recap line. kWh are whole integers in the model: integer arithmetic, French format (U+202F thousands, U+00A0 before kWh). Pure core src/core/kwh.ts, CHECK-17 (check-kwh.mjs: independent recomputation, gap/boundary/partial buckets, TZ, demo-CSV cross-check, 6 mutants killed). Spec FR-059..061, AC-53..56; README. MAX_TIP_LINES 9->10. Existing checks changed only for the added line (tip lengths, allowed tipRich class, MAX_TIP_LINES).
+Gates (lead re-run): build, npm test, TEMPO_DEMO_DATA=1 npm test, lint exit 0; smokes weather/details/visuals/live-search/kwh pass; smoke-shortcuts.v3 could not run (its scratch fixture short-8m.csv is gone; shortcut logic is covered by CHECK-9). PDF-backed run skipped (no TEMPO_PDF_DIR).
+
+## Follow-up (same express pass, user request + review fixes)
+Merged the HC/HP share line into the consumption line: 'Consommation : 1 318 kWh (HC 664 kWh, 50 % · HP 654 kWh, 50 %)'; bucket kWh now from raw priced days (3 kVA fix); NBSP before % in recap; tooltip width factor 6.6 px/char; MAX_TIP_LINES back to 9. Gates re-run by lead: build, npm test, demo, lint exit 0; five Chromium smokes pass.

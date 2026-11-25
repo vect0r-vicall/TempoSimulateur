@@ -113,7 +113,7 @@ const tooltipAgg = aggregateTemps(seasonal, bucketDates(sm.groups[2]));
 ok(sm.groups[2].tip.some((l) => l.includes(`min ${W.formatTemp(tooltipAgg.min).replace(/\s°C$/, '')}`) && l.includes(`max ${W.formatTemp(tooltipAgg.max).replace(/\s°C$/, '')}`)), 'tooltip min/max are the same bucket aggregates as the lines (min of mins, max of maxes)');
 
 // ---- 5. tooltip segments ----
-const CLASSES = new Set([undefined, 'tt-mean', 'tt-min', 'tt-max', 'tt-wind', 'tt-strong']);
+const CLASSES = new Set([undefined, 'tt-mean', 'tt-min', 'tt-max', 'tt-wind', 'tt-strong', 'tt-kwh']);
 const checkTip = (sc, label) => {
   const bad = sc.groups.filter((g) => g.tipRich.length !== g.tip.length || g.tipRich.some((segs, i) => segsText(segs) !== g.tip[i] || segs.length === 0 || segs.some((x) => typeof x.text !== 'string' || x.text === '' || !CLASSES.has(x.cls))));
   ok(bad.length === 0, `${label}: tipRich concatenation equals the plain tip for every line of every group`);
@@ -133,7 +133,7 @@ ok(part.groups[0].tip.some((l) => /\(\d+\/\d+ jours\)$/.test(l)) && part.groups[
 
 // ---- 6. weather off regression ----
 const off = buildScene(offers, ALL, apr, 'day', SIZE);
-ok(JSON.stringify(off) === JSON.stringify(buildScene(offers, ALL, apr, 'day', SIZE, null)) && off.weather === null && off.groups.every((g) => g.glyph === null && g.tip.length === 5 && g.tipRich.length === 5), 'weather off: scene has no overlay, no icon, 5 tooltip lines, same for undefined and null');
+ok(JSON.stringify(off) === JSON.stringify(buildScene(offers, ALL, apr, 'day', SIZE, null)) && off.weather === null && off.groups.every((g) => g.glyph === null && g.tip.length === 5 && g.tipRich.length === 5), 'weather off: scene has no overlay, no icon, 5 tooltip lines (title, 3 offers, consommation), same for undefined and null');
 ok(off.plot.w === SIZE.width - 62 - 12, 'weather off: plot unchanged');
 
 // ---- 7. fuzz ----

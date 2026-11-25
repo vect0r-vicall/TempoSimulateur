@@ -143,7 +143,7 @@ const apr = { from: '2025-04-01', to: '2025-04-30' };
   ok(sc.groups.every((g) => g.glyph.y >= 0 && g.glyph.y + (g.glyph.size * 5) / 6 <= sc.plot.y && g.glyph.size <= gw(sc) && g.glyph.size <= 20), 'icon box sits in the band above the plot, no wider than its cell (no collision with bars, lines or halo)');
   const t = sc.weather.segments.flat();
   ok(t.every((p) => p.y >= sc.plot.y) && sc.groups.every((g) => g.bars.every((b) => b.y >= sc.plot.y - 1e-6)), 'trend and bars stay at or below the plot top, below the glyph band');
-  ok(sc.groups.every((g) => g.tip.length === 8), 'day tooltip: title + 3 offers + share + météo + température + vent = 8 lines');
+  ok(sc.groups.every((g) => g.tip.length === 8), 'day tooltip: title + 3 offers + consommation (with HC/HP share) + météo + température + vent = 8 lines');
   const g0 = sc.groups[0], d0 = full.find((d) => d.date === g0.firstDate);
   eq(g0.tip.slice(-3), [`Météo : ${weatherLabel(d0.code)}`, g0.tip.at(-2), formatWind(d0.windKmh, d0.windDeg)], 'day tooltip: Météo line, then temperature, then wind');
   ok(/^Température : /.test(g0.tip.at(-2)), 'temperature line precedes the wind line');
@@ -189,7 +189,7 @@ const apr = { from: '2025-04-01', to: '2025-04-30' };
 {
   const svg = readFileSync('src/ui/svg.ts', 'utf8');
   ok(/wx-icon/.test(svg) && /aria-hidden/.test(svg.slice(svg.indexOf('wx-icon'), svg.indexOf('wx-icon') + 300)) && !/setAttribute\('style'/.test(svg), 'icon svg is class based and aria-hidden, no style attribute');
-  ok(/MAX_TIP_LINES = 9/.test(svg), 'MAX_TIP_LINES covers the 8-line day tooltip');
+  ok(/MAX_TIP_LINES = 9/.test(svg), 'MAX_TIP_LINES covers the 8-line day tooltip (plus one spare)');
   ok(/legend-note', scene\.weather\.glyphNote/.test(readFileSync('src/ui/chart.ts', 'utf8')), 'legend note drawn from scene.weather.glyphNote');
 }
 process.exit(failures ? 1 : 0);

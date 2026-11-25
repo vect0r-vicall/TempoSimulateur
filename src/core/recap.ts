@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Victor Allombert
 /** Analysis of an import for one period/kVA, and the recap of the selected offers. */
-import { ImportResult } from './types';
+import { DayConsumption, ImportResult } from './types';
 import { OFFER_IDS, OfferId, OfferResult, Offers, priceOffers } from './pricing';
 import { Period } from './period';
+import { Consumption, sumConsumption } from './kwh';
 
 export interface Analysis {
   period: Period;
@@ -12,6 +13,8 @@ export interface Analysis {
   estimatedDays: number; // days whose kWh were spread over a reading gap
   excludedDays: string[]; // period-boundary days inside the period (not priced, not charged)
   hchpDays: number; // priced days belonging to an HC/HP period
+  kwh: Consumption; // energy of the priced days of the period (same days as the offers' costs)
+  rawDays: DayConsumption[]; // the priced days themselves: the chart's per-bucket kWh are read from them, never from an offer
   offers: Offers; // per-day, per-offer cost structure (see pricing.ts)
 }
 
@@ -24,6 +27,8 @@ export function analyse(imp: ImportResult, period: Period, kva: number): Analysi
     estimatedDays: days.filter((d) => d.estimated).length,
     excludedDays: imp.excluded.filter((d) => d >= period.from && d <= period.to),
     hchpDays: days.filter((d) => d.kind === 'hchp').length,
+    kwh: sumConsumption(days),
+    rawDays: days,
     offers: priceOffers(days, kva),
   };
 }
@@ -42,6 +47,7 @@ export interface Recap {
   pricedDays: number;
   estimatedDays: number;
   excludedDays: number;
+  kwh: Consumption;
   calendarEstimate: boolean; // a selected available Tempo offer priced days with the calendar colour
 }
 
@@ -64,6 +70,7 @@ export function buildRecap(a: Analysis, selected: OfferId[]): Recap {
     pricedDays: a.pricedDays,
     estimatedDays: a.estimatedDays,
     excludedDays: a.excludedDays.length,
+    kwh: a.kwh,
     calendarEstimate: results.some((r) => r.offer === 'tempo' && r.available && r.calendarEstimateDays > 0),
   };
 }

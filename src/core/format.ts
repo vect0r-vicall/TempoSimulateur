@@ -71,3 +71,17 @@ export function formatEuroPerYearHt(micro: number): string {
 export function formatPercent(p: number): string {
   return `${String(p).replace('.', ',')} %`;
 }
+
+/** Whole-number grouped digits ('1 234', thousands separator U+202F as in formatEuro); tenths are kept only for a non-integer input. */
+export function formatKwhNumber(kwh: number): string {
+  const tenths = Math.round(Math.abs(kwh) * 10);
+  const whole = Math.floor(tenths / 10);
+  const frac = tenths - whole * 10;
+  const grouped = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return `${kwh < 0 ? '-' : ''}${grouped}${Number.isInteger(kwh) ? '' : `,${frac}`}`;
+}
+
+/** kWh -> "1 234 kWh" (no-break space before the unit). */
+export function formatKwh(kwh: number): string {
+  return `${formatKwhNumber(kwh)} kWh`;
+}
