@@ -31,9 +31,16 @@
         <li>Les deux familles ne peuvent pas &ecirc;tre renseign&eacute;es sur la m&ecirc;me ligne ; un changement de contrat est reconnu quand l'une remplace l'autre.</li>
         <li>Au moins deux relev&eacute;s, 20&nbsp;000 lignes et 5&nbsp;Mo au maximum, pas plus de 400 jours sans relev&eacute;.</li>
       </ul>
+      <p class="format-cap">Exemple HC/HP</p>
       <pre class="format-sample" tabindex="0">Date de relev&eacute; de l'index;Index Heures pleines (kWh);Index Heures creuses (kWh)
 02/11/2026;36225;27949
 01/11/2026;36204;27931</pre>
+      <p class="format-cap">Exemple Tempo (six index)</p>
+      <pre class="format-sample" tabindex="0">Date de relev&eacute; de l'index;Type d'index;Index Heures pleines (kWh);Index Heures creuses (kWh);Index Heures Creuses Bleu (kWh);Index Heures Pleines Bleu (kWh);Index Heures Creuses Blanc (kWh);Index Heures Pleines Blanc (kWh);Index Heures Creuses Rouge (kWh);Index Heures Pleines Rouge (kWh)
+02/11/2026;Index transmis par le distributeur;;;27949;36225;1795;1891;855;890
+01/11/2026;Index transmis par le distributeur;;;27931;36204;1795;1891;855;890</pre>
+      <p class="format-cap">Option Base</p>
+      <p class="format-note">Il n'y a pas de format propre &agrave; Base : un fichier Heures pleines/creuses (ou Tempo) suffit, la simulation Base additionne simplement tous les index.</p>
     </details>
     <div id="dropzone" class="dropzone">
       <p class="dz-title">D&eacute;posez ici votre fichier <code>mes-index-elec-&hellip;.csv</code></p>
