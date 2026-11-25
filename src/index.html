@@ -21,6 +21,20 @@
 <main>
   <section aria-labelledby="import-title" class="card">
     <h2 id="import-title">Importez votre fichier d'index EDF</h2>
+    <p class="hint import-help">Comment l'obtenir&nbsp;? Connectez-vous &agrave; votre espace client EDF, ouvrez la rubrique de suivi de votre consommation &eacute;lectrique, puis utilisez l'export de vos index au format CSV (le fichier s'appelle <code>mes-index-elec-&hellip;.csv</code>). Les intitul&eacute;s exacts peuvent varier selon l'&eacute;volution du site. La puissance max (<code>ma-puissance-max-&hellip;.csv</code>) se t&eacute;l&eacute;charge au m&ecirc;me endroit.</p>
+    <details class="format-details">
+      <summary>Format attendu du fichier (utilisateurs avanc&eacute;s)</summary>
+      <ul class="format-list">
+        <li>CSV s&eacute;par&eacute; par des points-virgules, UTF-8 ou Latin-1 ; les lignes avant l'en-t&ecirc;te (titre, lignes vides) sont ignor&eacute;es.</li>
+        <li>Une colonne dont l'intitul&eacute; contient <code>date</code> (format <code>JJ/MM/AAAA</code>), un relev&eacute; par jour, dans n'importe quel ordre.</li>
+        <li>Index cumul&eacute;s en kWh, entiers : soit Heures pleines et Heures creuses, soit les six index Tempo (Heures creuses/pleines Bleu, Blanc, Rouge). Les colonnes inutiles (par exemple <code>Type d'index</code>) sont ignor&eacute;es.</li>
+        <li>Les deux familles ne peuvent pas &ecirc;tre renseign&eacute;es sur la m&ecirc;me ligne ; un changement de contrat est reconnu quand l'une remplace l'autre.</li>
+        <li>Au moins deux relev&eacute;s, 20&nbsp;000 lignes et 5&nbsp;Mo au maximum, pas plus de 400 jours sans relev&eacute;.</li>
+      </ul>
+      <pre class="format-sample" tabindex="0">Date de relev&eacute; de l'index;Index Heures pleines (kWh);Index Heures creuses (kWh)
+02/11/2026;36225;27949
+01/11/2026;36204;27931</pre>
+    </details>
     <div id="dropzone" class="dropzone">
       <p class="dz-title">D&eacute;posez ici votre fichier <code>mes-index-elec-&hellip;.csv</code></p>
       <p class="dz-sub">ou</p>
