@@ -12,6 +12,7 @@ import { Granularity, Scene, buildScene, dayAllowed } from '../core/scene';
 import { LegendBlock, LegendEntry } from '../core/legend';
 import { View, viewBack, viewGranularity, viewRange, viewTitle, gotoModel, parseGotoValue, DrillView } from '../core/view';
 import { frDate } from '../core/format';
+import { viewRecap } from '../core/viewrecap';
 import { el, node } from './dom';
 import { renderSvg } from './svg';
 
@@ -106,6 +107,18 @@ export function initChart(): Chart {
   head.append(title, back);
   const differs = node('p', 'notice chart-differs');
 
+  // totals of the range the chart shows (same analysis as the scene)
+  const vr = node('section', 'view-recap');
+  const vrTitle = node('h3', 'view-recap-title');
+  vrTitle.id = 'view-recap-title';
+  vr.setAttribute('aria-labelledby', 'view-recap-title');
+  const vrList = node('ul', 'view-offers');
+  const vrDays = node('p', 'view-recap-days');
+  vr.append(vrTitle, vrList, vrDays);
+  const vrStatus = node('p', 'visually-hidden');
+  vrStatus.setAttribute('role', 'status');
+  vrStatus.setAttribute('aria-live', 'polite');
+
   const bar = node('div', 'chart-toolbar');
   const toggle = node('div', 'seg-toggle');
   toggle.setAttribute('role', 'group');
@@ -143,7 +156,7 @@ export function initChart(): Chart {
   const wrap = node('div', 'chart-wrap');
   const summary = node('p', 'visually-hidden');
   const notes = node('p', 'chart-notes');
-  root.append(head, differs, bar, msg, hint, wrap, summary, notes, legend);
+  root.append(head, differs, vr, vrStatus, bar, msg, hint, wrap, summary, notes, legend);
 
   function fillOptions(priced: Period): void {
     const model = gotoModel(view, priced);
@@ -191,7 +204,21 @@ export function initChart(): Chart {
     differs.hidden = isPeriod;
     differs.textContent = isPeriod
       ? ''
-      : `Cette vue n'est pas limitée à la période sélectionnée (du ${frDate(inp.a.period.from)} au ${frDate(inp.a.period.to)}) : le récapitulatif ci-dessus continue de décrire cette période.`;
+      : `Cette vue n'est pas limitée à la période sélectionnée (du ${frDate(inp.a.period.from)} au ${frDate(inp.a.period.to)}) : le récapitulatif général de la page continue de décrire cette période.`;
+
+    const rec = viewRecap(view, a, inp.selected);
+    vrTitle.textContent = rec.title;
+    vrList.replaceChildren();
+    for (const r of rec.rows) {
+      const li = node('li', !r.available ? 'view-offer unavailable' : r.cheapest ? 'view-offer cheapest' : 'view-offer');
+      li.append(node('span', 'view-offer-name', r.label), node('span', 'view-offer-total', r.totalText));
+      if (r.cheapest) li.append(node('span', 'badge', 'Le moins cher'));
+      if (!r.available) li.append(node('span', 'offer-reason', r.reason));
+      vrList.append(li);
+    }
+    vrDays.textContent = rec.daysText;
+    vr.hidden = rec.rows.length === 0;
+    if (vrStatus.textContent !== rec.summary) vrStatus.textContent = rec.summary; // avoid re-announcing identical text
 
     const dayOk = dayAllowed(inp.a.period);
     const dayMessage = isPeriod ? scene.dayMessage : '';

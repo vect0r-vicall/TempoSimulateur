@@ -290,3 +290,21 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
 .tariff-prices div { display: flex; justify-content: space-between; gap: .75rem; }
 .tariff-prices dt { color: var(--muted); }
 .tariff-prices dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* totals of the chart's current view (compact variant of the main recap) */
+.view-recap { margin: 0 0 .75rem; }
+.view-recap[hidden] { display: none; }
+.view-recap-title { margin: 0 0 .4rem; font-size: .95rem; }
+.view-offers { list-style: none; padding: 0; margin: 0 0 .35rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+.view-offer {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .1rem .6rem;
+  flex: 1 1 9rem; max-width: 16rem; border: 1px solid var(--border); border-radius: 10px; padding: .45rem .7rem;
+}
+.view-offer-name { font-weight: 600; font-size: .9rem; }
+.view-offer-total { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.view-offer.cheapest { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok); }
+.view-offer.unavailable { border-style: dashed; }
+.view-offer.unavailable .view-offer-total { font-size: .9rem; color: var(--muted); }
+.view-offer .badge { font-size: .7rem; padding: .05rem .5rem; }
+.view-offer .offer-reason { font-size: .78rem; color: var(--muted); }
+.view-recap-days { margin: 0; color: var(--muted); font-size: .85rem; }

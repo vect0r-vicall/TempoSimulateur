@@ -5,6 +5,8 @@ Importez votre export d'index EDF (`mes-index-elec-….csv`, et facultativement 
 le coût de votre consommation est calculé pour chaque offre avec les grilles tarifaires EDF historiques
 (depuis 2022), puis comparé dans un récapitulatif et un graphique (par année, mois ou jour).
 
+Sous le titre de la vue, la carte du graphique affiche le **total de chaque offre pour la plage réellement affichée** (période sélectionnée, année ou mois détaillé), avec l'offre la moins chère.
+
 En bas de page, la carte **Tarifs appliqués** liste les prix EDF réellement utilisés (abonnement et prix du kWh par offre, pour chaque grille couvrant la période) avec leur source.
 
 ## Confidentialité
