@@ -10,14 +10,21 @@ import { dayNum } from './days';
 export interface DailyTemp {
   date: string; mean: number | null; min: number | null; max: number | null;
   code?: number | null; windKmh?: number | null; windDeg?: number | null;
+  /** Daily precipitation sum in mm (rain + showers + snow water equivalent); absent or null means not provided. */
+  precipMm?: number | null;
 }
 export interface Place { label: string; latitude: number; longitude: number }
+export interface PrecipAggregate { mm: number | null; covered: number; total: number }
 export interface WindAggregate { speed: number | null; deg: number | null; covered: number; total: number }
 export interface TempAggregate { mean: number | null; min: number | null; max: number | null; covered: number; total: number }
 
 export const TEMP_MIN = -90;
 export const TEMP_MAX = 60;
 export const WIND_MAX = 300;
+/** Ceiling of a daily precipitation sum in mm (above the world record of about 1 800 mm/day, so never a real value). */
+export const PRECIP_MAX = 2000;
+/** A day counts as rainy only above this daily precipitation sum (mm), whatever the provider's weather code says. */
+export const RAIN_MM_THRESHOLD = 1;
 export const MAX_PLACES = 5;
 /** WMO weather codes accepted from the provider (anything else is treated as missing). */
 export const WMO_CODES: readonly number[] = [0, 1, 2, 3, 45, 48, 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99];
@@ -48,6 +55,9 @@ function tempOrNull(v: unknown): number | null {
 function codeOrNull(v: unknown): number | null {
   return typeof v === 'number' && Number.isInteger(v) && WMO_CODES.includes(v) ? v : null;
 }
+function precipOrNull(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= PRECIP_MAX ? v : null;
+}
 function windOrNull(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= WIND_MAX ? v : null;
 }
@@ -56,9 +66,9 @@ function dirOrNull(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 360 ? v % 360 : null;
 }
 
-/** True when the day carries at least one valid value (temperature, weather code or wind). */
+/** True when the day carries at least one valid value (temperature, weather code, wind or precipitation). */
 export function dayHasData(d: DailyTemp): boolean {
-  return d.mean !== null || d.min !== null || d.max !== null || (d.code ?? null) !== null || (d.windKmh ?? null) !== null || (d.windDeg ?? null) !== null;
+  return d.mean !== null || d.min !== null || d.max !== null || (d.code ?? null) !== null || (d.windKmh ?? null) !== null || (d.windDeg ?? null) !== null || (d.precipMm ?? null) !== null;
 }
 
 /** Strict validation of an archive response for the requested inclusive civil-date window. */
@@ -70,12 +80,12 @@ export function parseWeatherResponse(json: unknown, startDate: string, endDate: 
   const time = d['time'], mean = d['temperature_2m_mean'], min = d['temperature_2m_min'], max = d['temperature_2m_max'];
   if (!Array.isArray(time) || !Array.isArray(mean) || !Array.isArray(min) || !Array.isArray(max)) return bad('arrays');
   const opt = (k: string): unknown[] | null | 'bad' => (d[k] === undefined ? null : Array.isArray(d[k]) ? (d[k] as unknown[]) : 'bad'); // provider may omit an optional variable
-  const code = opt('weather_code'), wind = opt('wind_speed_10m_mean'), dir = opt('wind_direction_10m_dominant');
-  if (code === 'bad' || wind === 'bad' || dir === 'bad') return bad('arrays');
+  const code = opt('weather_code'), wind = opt('wind_speed_10m_mean'), dir = opt('wind_direction_10m_dominant'), precip = opt('precipitation_sum');
+  if (code === 'bad' || wind === 'bad' || dir === 'bad' || precip === 'bad') return bad('arrays');
   const expected = dayNum(endDate) - dayNum(startDate) + 1; // inclusive civil-date span of the requested window
   if (time.length > expected || time.length > HARD_MAX_DAYS) return bad('too many days');
   if (mean.length !== time.length || min.length !== time.length || max.length !== time.length) return bad('length mismatch');
-  for (const a of [code, wind, dir]) if (a !== null && a.length !== time.length) return bad('length mismatch');
+  for (const a of [code, wind, dir, precip]) if (a !== null && a.length !== time.length) return bad('length mismatch');
   const days: DailyTemp[] = [];
   const seen = new Set<string>();
   let missing = 0;
@@ -86,7 +96,7 @@ export function parseWeatherResponse(json: unknown, startDate: string, endDate: 
     seen.add(t);
     const day: DailyTemp = {
       date: t, mean: tempOrNull(mean[i]), min: tempOrNull(min[i]), max: tempOrNull(max[i]),
-      code: code ? codeOrNull(code[i]) : null, windKmh: wind ? windOrNull(wind[i]) : null, windDeg: dir ? dirOrNull(dir[i]) : null,
+      code: code ? codeOrNull(code[i]) : null, windKmh: wind ? windOrNull(wind[i]) : null, windDeg: dir ? dirOrNull(dir[i]) : null, precipMm: precip ? precipOrNull(precip[i]) : null,
     };
     if (!dayHasData(day)) missing++;
     days.push(day);
@@ -200,6 +210,42 @@ export function aggregateWind(days: DailyTemp[] | Map<string, DailyTemp>, bucket
     deg = Math.round(deg * 1e6) / 1e6 % 360;
   }
   return { speed: n > 0 ? sum / n : null, deg, covered: n, total: bucketDates.length };
+}
+
+/** Aggregates precipitation over a bucket: sum of the daily sums (mm); covered = days with a value; null when no day has one. */
+export function aggregatePrecip(days: DailyTemp[] | Map<string, DailyTemp>, bucketDates: string[]): PrecipAggregate {
+  const byDate = days instanceof Map ? days : new Map(days.map((d) => [d.date, d]));
+  let sum = 0, n = 0;
+  for (const date of bucketDates) {
+    const v = byDate.get(date)?.precipMm ?? null;
+    if (v === null) continue;
+    sum += v; n++;
+  }
+  return { mm: n > 0 ? sum : null, covered: n, total: bucketDates.length };
+}
+
+/** 12.34 -> "12,3 mm" (no-break space, one decimal). */
+export function formatPrecip(mm: number): string {
+  return `${(Math.round(mm * 10) / 10).toFixed(1).replace('.', ',')}\u00A0mm`;
+}
+
+/** Precipitation segments "Précipitations : 12,3 mm" (+ " (N/M jours)" when partial; 'donnée indisponible' without a value). */
+export function precipSegments(mm: number | null, covered = 1, total = 1): Seg[] {
+  if (mm === null) return [{ text: 'Précipitations : donnée indisponible' }];
+  const out: Seg[] = [{ text: 'Précipitations : ' }, { text: formatPrecip(mm), cls: 'tt-strong' }];
+  if (covered < total) out.push({ text: ` (${covered}/${total} jours)` });
+  return out;
+}
+export const precipTooltipSegments = (a: PrecipAggregate): Seg[] => precipSegments(a.mm, a.covered, a.total);
+
+/** WMO codes of liquid precipitation (drizzle, rain, showers). Freezing, snow and storm codes are not in the list: they keep their own icon. */
+export const RAIN_CODES: readonly number[] = [51, 53, 55, 61, 63, 65, 80, 81, 82];
+/** The code to display for a day: a liquid-precipitation code with a known daily sum of at most RAIN_MM_THRESHOLD mm
+ *  (the reanalysis reports drizzle for a single wet hour) is shown as 'Couvert' (3). Unknown precipitation keeps the provider's code. */
+export function displayCode(code: number | null | undefined, precipMm: number | null | undefined): number | null {
+  if (code === null || code === undefined) return null;
+  if (RAIN_CODES.includes(code) && precipMm !== null && precipMm !== undefined && precipMm <= RAIN_MM_THRESHOLD) return 3;
+  return code;
 }
 
 const LABELS: Array<[number[], string]> = [

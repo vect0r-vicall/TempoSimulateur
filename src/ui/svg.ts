@@ -29,7 +29,7 @@ function iconEl(d: IconEl): SVGElement {
   return e;
 }
 
-const MAX_TIP_LINES = 9; // longest tooltip: title + 3 offers + consumption + weather + temperature + wind = 8, plus one spare
+const MAX_TIP_LINES = 9; // longest tooltip: title + 3 offers + consumption + weather + temperature + wind + precipitation = 9
 
 /** Right-hand degC axis and smoothed trend line (drawn under the bars' hit areas, never interactive). */
 function s_weather(scene: Scene): SVGGElement | null {

@@ -12,7 +12,7 @@ const N = await import('../.build-test/net/weather.mjs');
 const { buildScene, GLYPH_MIN_W } = await import('../.build-test/core/scene.mjs');
 const { priceOffers } = await import('../.build-test/core/pricing.mjs');
 const gw = (sc) => sc.plot.w / sc.groups.length;
-const { parseWeatherResponse, aggregateWind, weatherLabel, weatherIconKind, compassFr, formatWind, windTooltipLine, weatherTooltipLine, WMO_CODES, dayHasData } = W;
+const { parseWeatherResponse, aggregateWind, weatherLabel, weatherIconKind, compassFr, formatWind, windTooltipLine, weatherTooltipLine, WMO_CODES, dayHasData, displayCode, aggregatePrecip, formatPrecip, precipSegments, RAIN_CODES, RAIN_MM_THRESHOLD, PRECIP_MAX } = W;
 const NB = '\u00A0';
 
 // ---- labels and icon kinds (CHECK-13 expectation change: glyph characters became icon kinds; exhaustive mapping in CHECK-14) ----
@@ -106,7 +106,7 @@ const resp = (body) => ({ ok: true, status: 200, text: async () => JSON.stringif
   const r = await N.fetchDailyTemps(48.8566, 2.3522, '2025-01-01', '2025-01-04', f);
   ok(r.ok && r.days.length === 4 && r.days[0].code === 53, 'fetchDailyTemps returns the new fields');
   const u = new URL(calls[0].url);
-  eq(u.searchParams.get('daily'), 'temperature_2m_mean,temperature_2m_max,temperature_2m_min,weather_code,wind_speed_10m_mean,wind_direction_10m_dominant', 'daily variables in the required order');
+  eq(u.searchParams.get('daily'), 'temperature_2m_mean,temperature_2m_max,temperature_2m_min,weather_code,wind_speed_10m_mean,wind_direction_10m_dominant,precipitation_sum', 'daily variables in the required order');
   eq([...u.searchParams.keys()], ['latitude', 'longitude', 'start_date', 'end_date', 'daily', 'timezone'], 'no other query parameter');
   ok(!/gust|wind_speed_10m_max|wind_gusts/.test(calls[0].url), 'no gusts or max wind requested');
   const i = calls[0].init;
@@ -143,13 +143,12 @@ const apr = { from: '2025-04-01', to: '2025-04-30' };
   ok(sc.groups.every((g) => g.glyph.y >= 0 && g.glyph.y + (g.glyph.size * 5) / 6 <= sc.plot.y && g.glyph.size <= gw(sc) && g.glyph.size <= 20), 'icon box sits in the band above the plot, no wider than its cell (no collision with bars, lines or halo)');
   const t = sc.weather.segments.flat();
   ok(t.every((p) => p.y >= sc.plot.y) && sc.groups.every((g) => g.bars.every((b) => b.y >= sc.plot.y - 1e-6)), 'trend and bars stay at or below the plot top, below the glyph band');
-  ok(sc.groups.every((g) => g.tip.length === 8), 'day tooltip: title + 3 offers + consommation (with HC/HP share) + météo + température + vent = 8 lines');
+  ok(sc.groups.every((g) => g.tip.length === 9), 'day tooltip: title + 3 offers + consommation (with HC/HP share) + météo + température + vent + précipitations = 9 lines');
   const g0 = sc.groups[0], d0 = full.find((d) => d.date === g0.firstDate);
-  eq(g0.tip.slice(-3), [`Météo : ${weatherLabel(d0.code)}`, g0.tip.at(-2), formatWind(d0.windKmh, d0.windDeg)], 'day tooltip: Météo line, then temperature, then wind');
-  ok(/^Température : /.test(g0.tip.at(-2)), 'temperature line precedes the wind line');
+  eq(g0.tip.slice(-4, -1), [`Météo : ${weatherLabel(displayCode(d0.code, d0.precipMm))}`, g0.tip.at(-3), formatWind(d0.windKmh, d0.windDeg)], 'day tooltip: Météo line, then temperature, then wind, then precipitation');
+  ok(/^Température : /.test(g0.tip.at(-3)), 'temperature line precedes the wind line');
   ok(sc.groups.every((g) => g.aria.includes('Météo : ') && g.aria.includes('Vent : moy.')), 'aria-label carries the weather label and the wind sentence');
   eq(sc.weather.glyphNote, 'Symboles : météo du jour', 'legend note when glyphs are drawn');
-  ok(8 <= 9, 'tooltip fits MAX_TIP_LINES (9)');
   const longest = Math.max(...sc.groups.flatMap((g) => g.tip.map((l) => l.length)));
   ok(longest * 6.3 + 16 < SIZE.width / 2, `longest tooltip line (${longest} chars) fits the tooltip width logic`);
 }
@@ -160,13 +159,13 @@ const apr = { from: '2025-04-01', to: '2025-04-30' };
 { // partial data
   const part = wx((i, d) => ({ code: i % 3 === 0 ? 61 : null, windKmh: i % 2 ? 9 : null, windDeg: i % 2 ? 200 : null }));
   const sc = buildScene(offers, ALL, apr, 'day', SIZE, part);
-  const none = sc.groups.find((g) => !g.glyph && g.tip.at(-1) === 'Vent : donnée indisponible');
+  const none = sc.groups.find((g) => !g.glyph && g.tip.at(-2) === 'Vent : donnée indisponible');
   ok(none && none.tip.includes('Météo : donnée indisponible'), 'day without code and wind: no glyph, "donnée indisponible" lines');
   ok(sc.groups.filter((g) => !g.glyph).length > 0 && sc.groups.filter((g) => g.glyph).length > 0, 'glyphs only on days that have a code');
   const nocode = buildScene(offers, ALL, apr, 'day', SIZE, wx(() => ({ code: null })));
   ok(nocode.groups.every((g) => g.glyph === null) && nocode.weather.glyphNote === '', 'no code anywhere: no glyph, no legend note');
   const tempOnly = buildScene(offers, ALL, apr, 'day', SIZE, days.map((d) => ({ date: d.date, mean: 3, min: 1, max: 5 })));
-  ok(tempOnly.groups.every((g) => g.glyph === null) && tempOnly.weather.glyphNote === '' && tempOnly.groups.every((g) => /^Vent : donnée indisponible$/.test(g.tip.at(-1))), 'old temperature-only data degrades cleanly');
+  ok(tempOnly.groups.every((g) => g.glyph === null) && tempOnly.weather.glyphNote === '' && tempOnly.groups.every((g) => /^Vent : donnée indisponible$/.test(g.tip.at(-2))), 'old temperature-only data degrades cleanly');
 }
 { // narrow cells: glyphs would overlap, so none are drawn and no legend note
   const wide = buildScene(offers, ALL, { from: '2025-03-15', to: '2026-03-14' }, 'day', SIZE, full);
@@ -175,21 +174,77 @@ const apr = { from: '2025-04-01', to: '2025-04-30' };
 { // month and year views: temperature + wind lines, no weather line, no glyph
   for (const gran of ['month', 'year']) {
     const sc = buildScene(offers, ALL, { from: '2025-03-15', to: '2026-03-14' }, gran, SIZE, full);
-    ok(sc.groups.every((g) => g.glyph === null && !g.tip.some((l) => l.startsWith('Météo :')) && /^Température : /.test(g.tip.at(-2)) && /^Vent : moy\./.test(g.tip.at(-1))), `${gran} view: temperature + wind lines, no Météo line, no glyph`);
+    ok(sc.groups.every((g) => g.glyph === null && !g.tip.some((l) => l.startsWith('Météo :')) && /^Température : /.test(g.tip.at(-3)) && /^Vent : moy\./.test(g.tip.at(-2))), `${gran} view: temperature + wind lines, no Météo line, no glyph`);
     ok(sc.groups.every((g) => !g.aria.includes('Météo :')) && sc.groups.every((g) => g.aria.includes('Vent :')), `${gran} view: aria has the wind sentence and no weather label`);
     eq(sc.weather.glyphNote, '', `${gran} view: no glyph legend note`);
   }
   const part = buildScene(offers, ALL, { from: '2025-03-15', to: '2025-04-30' }, 'month', SIZE, wx((i) => ({ windKmh: i < 10 ? 10 : null, windDeg: i < 10 ? 100 : null })));
-  ok(/\(10\/17 jours\)$/.test(part.groups[0].tip.at(-1)), 'month wind line carries the partial coverage suffix');
+  ok(/\(10\/17 jours\)$/.test(part.groups[0].tip.at(-2)), 'month wind line carries the partial coverage suffix');
   const circ = buildScene(offers, ALL, { from: '2025-04-01', to: '2025-04-02' }, 'month', SIZE, wx((i, d) => ({ windKmh: 10, windDeg: d === '2025-04-01' ? 350 : 10 })));
-  ok(/du nord$/.test(circ.groups[0].tip.at(-1)), `month wind direction wraps through north (${circ.groups[0].tip.at(-1)})`);
+  ok(/du nord$/.test(circ.groups[0].tip.at(-2)), `month wind direction wraps through north (${circ.groups[0].tip.at(-2)})`);
+}
+
+
+// ---- precipitation (rain only above 1 mm, precipitation in the tooltip) ----
+{
+  eq(RAIN_MM_THRESHOLD, 1, 'rain threshold is 1 mm');
+  const pb = () => { const j = base(); j.daily.precipitation_sum = [0.4, 2.5, PRECIP_MAX, null]; return j; };
+  const pp = parseWeatherResponse(pb(), '2025-01-01', '2025-01-04');
+  ok(pp.ok && pp.days.map((d) => d.precipMm).join() === [0.4, 2.5, PRECIP_MAX, null].join(), 'parse: precipitation_sum kept, null stays null');
+  const bp = pb(); bp.daily.precipitation_sum = [-1, PRECIP_MAX + 1, NaN, 'x'];
+  const pbad = parseWeatherResponse(bp, '2025-01-01', '2025-01-04');
+  ok(pbad.ok && pbad.days.every((d) => d.precipMm === null), 'parse: negative, too large, NaN and non-number precipitation become null');
+  const bl = pb(); bl.daily.precipitation_sum = [1, 2];
+  ok(!parseWeatherResponse(bl, '2025-01-01', '2025-01-04').ok, 'parse: wrong-length precipitation_sum is rejected');
+  const absent = parseWeatherResponse(base(), '2025-01-01', '2025-01-04');
+  ok(absent.ok && absent.days.every((d) => d.precipMm === null), 'parse: absent precipitation_sum gives null (old payloads stay valid)');
+  ok(dayHasData({ date: '2025-01-01', mean: null, min: null, max: null, precipMm: 0 }), 'a day with only a precipitation value has data');
+
+  // displayCode: liquid-precipitation codes need more than 1 mm
+  eq([...RAIN_CODES], [51, 53, 55, 61, 63, 65, 80, 81, 82], 'liquid-precipitation codes are exactly drizzle, rain and showers (FR-062)');
+  ok(RAIN_CODES.every((c) => displayCode(c, 1) === 3 && displayCode(c, 0) === 3 && displayCode(c, 0.99) === 3), 'liquid codes with <= 1 mm (1 mm included) are shown as Couvert (3)');
+  ok(RAIN_CODES.every((c) => displayCode(c, 1.01) === c && displayCode(c, 12) === c), 'liquid codes with > 1 mm keep their code');
+  ok(RAIN_CODES.every((c) => displayCode(c, null) === c && displayCode(c, undefined) === c), 'unknown precipitation keeps the provider code');
+  ok([0, 1, 2, 3, 45, 48, 56, 57, 66, 67, 71, 73, 75, 77, 85, 86, 95, 96, 99].every((c) => displayCode(c, 0) === c), 'fog, freezing, snow and storm codes are never changed');
+  ok(displayCode(null, 5) === null && displayCode(undefined, 5) === null, 'no code gives null');
+  eq(weatherIconKind(displayCode(53, 0.3)), 'cloud', 'light drizzle day shows the cloud icon');
+  eq(weatherIconKind(displayCode(53, 3)), 'rain', 'wet drizzle day keeps the rain icon');
+
+  // aggregation and formatting
+  const pd = [{ date: '2025-01-01', precipMm: 0.4 }, { date: '2025-01-02', precipMm: 2.5 }, { date: '2025-01-03', precipMm: null }].map((d) => ({ mean: null, min: null, max: null, ...d }));
+  const ag = aggregatePrecip(pd, ['2025-01-01', '2025-01-02', '2025-01-03', '2025-01-09']);
+  ok(Math.abs(ag.mm - 2.9) < 1e-9 && ag.covered === 2 && ag.total === 4, 'aggregate: sum of the daily values, covered/total');
+  const none0 = aggregatePrecip(pd, ['2025-01-03', '2025-02-01']);
+  ok(none0.mm === null && none0.covered === 0 && none0.total === 2, 'aggregate: no value gives null');
+  eq(aggregatePrecip([{ date: '2025-01-01', mean: null, min: null, max: null, precipMm: 0 }], ['2025-01-01']).mm, 0, 'aggregate: a dry day is 0, not missing');
+  eq([formatPrecip(0), formatPrecip(2.94), formatPrecip(12.34), formatPrecip(1234.56)], [`0,0${NB}mm`, `2,9${NB}mm`, `12,3${NB}mm`, `1234,6${NB}mm`], 'format: comma, one decimal, no-break space');
+  eq(precipSegments(12.3).map((x) => x.text).join(''), `Précipitations : 12,3${NB}mm`, 'precipitation line');
+  eq(precipSegments(2.9, 2, 4).map((x) => x.text).join(''), `Précipitations : 2,9${NB}mm (2/4 jours)`, 'precipitation line with partial coverage');
+  eq(precipSegments(null, 0, 4).map((x) => x.text).join(''), 'Précipitations : donnée indisponible', 'precipitation line without data');
+
+  // scene: day view
+  const wet = { from: '2025-04-01', to: '2025-04-03' };
+  const dry = wx((i, d) => ({ code: 53, windKmh: 5, windDeg: 90, precipMm: d === '2025-04-01' ? 0.4 : d === '2025-04-02' ? 2.5 : null }));
+  const ds = buildScene(offers, ALL, wet, 'day', SIZE, dry);
+  const byKey = new Map(ds.groups.map((g) => [g.firstDate, g]));
+  const a = byKey.get('2025-04-01'), b = byKey.get('2025-04-02'), c = byKey.get('2025-04-03');
+  ok(a.tip.includes('Météo : Couvert') && a.glyph.kind === 'cloud', 'day with drizzle and 0,4 mm: Couvert and cloud icon, not rain');
+  ok(b.tip.includes('Météo : Bruine') && b.glyph.kind === 'rain', 'day with drizzle and 2,5 mm: keeps Bruine and the rain icon');
+  ok(c.tip.includes('Météo : Bruine') && c.glyph.kind === 'rain', 'day with drizzle and unknown precipitation: keeps the provider code');
+  eq([a.tip.at(-1), b.tip.at(-1), c.tip.at(-1)], [`Précipitations : 0,4${NB}mm`, `Précipitations : 2,5${NB}mm`, 'Précipitations : donnée indisponible'], 'day tooltip ends with the precipitation line');
+  ok(ds.groups.every((g) => g.tipRich.length === g.tip.length && g.tipRich.every((r, i) => r.map((x) => x.text).join('') === g.tip[i])), 'tipRich concatenation equals tip with the precipitation line');
+  ok(a.aria.includes(`Précipitations : 0,4${NB}mm`), 'aria-label carries the precipitation sentence');
+  // month view: sum over the bucket, with partial coverage
+  const ms = buildScene(offers, ALL, { from: '2025-04-01', to: '2025-04-30' }, 'month', SIZE, dry);
+  eq(ms.groups[0].tip.at(-1), `Précipitations : 2,9${NB}mm (2/30 jours)`, 'month tooltip sums the days with a value and shows the coverage');
+  ok(!ms.groups[0].tip.some((l) => l.startsWith('Météo :')), 'month view still has no Météo line');
 }
 
 // ---- DOM layer source: decorative glyph, no style attribute ----
 {
   const svg = readFileSync('src/ui/svg.ts', 'utf8');
   ok(/wx-icon/.test(svg) && /aria-hidden/.test(svg.slice(svg.indexOf('wx-icon'), svg.indexOf('wx-icon') + 300)) && !/setAttribute\('style'/.test(svg), 'icon svg is class based and aria-hidden, no style attribute');
-  ok(/MAX_TIP_LINES = 9/.test(svg), 'MAX_TIP_LINES covers the 8-line day tooltip (plus one spare)');
+  ok(/MAX_TIP_LINES = 9/.test(svg), 'MAX_TIP_LINES covers the 9-line day tooltip');
   ok(/legend-note', scene\.weather\.glyphNote/.test(readFileSync('src/ui/chart.ts', 'utf8')), 'legend note drawn from scene.weather.glyphNote');
 }
 process.exit(failures ? 1 : 0);

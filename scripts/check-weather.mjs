@@ -114,7 +114,7 @@ const fake = (handler) => { const calls = []; const f = async (url, init) => { c
   const u = new URL(f.calls[0].url);
   ok(u.origin === 'https://archive-api.open-meteo.com' && u.pathname === '/v1/archive', 'archive origin and path exact');
   eq([u.searchParams.get('latitude'), u.searchParams.get('longitude'), u.searchParams.get('start_date'), u.searchParams.get('end_date'), u.searchParams.get('daily'), u.searchParams.get('timezone')],
-    ['48.9', '2.4', '2025-01-01', '2025-01-03', 'temperature_2m_mean,temperature_2m_max,temperature_2m_min,weather_code,wind_speed_10m_mean,wind_direction_10m_dominant', 'auto'], 'archive params, coordinates rounded to 0.1');
+    ['48.9', '2.4', '2025-01-01', '2025-01-03', 'temperature_2m_mean,temperature_2m_max,temperature_2m_min,weather_code,wind_speed_10m_mean,wind_direction_10m_dominant,precipitation_sum', 'auto'], 'archive params, coordinates rounded to 0.1');
   ok(!/48\.85|2\.35/.test(f.calls[0].url), 'precise coordinates never sent');
   const i = f.calls[0].init;
   ok(i.method === 'GET' && i.credentials === 'omit' && i.referrerPolicy === 'no-referrer', 'archive: GET, credentials omit, no-referrer');

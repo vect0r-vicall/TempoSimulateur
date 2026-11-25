@@ -1,0 +1,21 @@
+{
+ "task": "weather-precipitation",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "express",
+ "assurance": "degraded",
+ "assurance_note": "roster review bundle not installed (review-bundle-verify, normalizer, convergence gate absent); independent reviewer subagent ran npm test and tsc itself, no gate",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "auto_fixes_applied": 0,
+ "findings": [
+  {"severity": "LOW", "path": "specs/tempo-simulator.md", "summary": "FR-035, FR-059 and AC-34 still listed the old daily variables and the 8-line tooltip", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "LOW", "path": "scripts/check-weather-details.mjs", "summary": "formatPrecip expectation computed with the implementation's own formula; RAIN_CODES taken from the implementation", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "INFO", "path": "scripts/check-weather-details.mjs", "summary": "constant assertion 9 <= 9 removed", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1}
+ ],
+ "cross_runtime_findings": [],
+ "summary": "No defect in src/. Tooltip indices, 1 mm boundary, validation, CSP and privacy verified. Five LOW/INFO spec and test findings fixed in the same round.",
+ "no_go_reason": null,
+ "escalation_needed": false
+}

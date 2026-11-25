@@ -195,8 +195,8 @@ kva3Block('synthetic', imp, period);
     const an = analyseFor(p2);
     const w = gran === 'day' ? wx : days.filter((d) => d.date >= p2.from && d.date <= p2.to).map((d) => ({ date: d.date, mean: 10, min: 7, max: 14, code: null, windKmh: 5, windDeg: 0 }));
     const sOff = buildScene(an.offers, ALL, p2, gran, SIZE), sOn = buildScene(an.offers, ALL, p2, gran, SIZE, w);
-    ok(sOn.groups.every((g, i) => JSON.stringify(g.tip.slice(0, 5)) === JSON.stringify(sOff.groups[i].tip) && g.tip[4].startsWith('Consommation') && /^Température : /.test(g.tip.at(-2)) && /^Vent : /.test(g.tip.at(-1))
-      && (gran !== 'day' || g.tip[5].startsWith('Météo : ')) && g.tip.length === (gran === 'day' ? 8 : 7)), `${gran} with weather: consumption right after the offer lines and before Météo/Température/Vent`);
+    ok(sOn.groups.every((g, i) => JSON.stringify(g.tip.slice(0, 5)) === JSON.stringify(sOff.groups[i].tip) && g.tip[4].startsWith('Consommation') && /^Température : /.test(g.tip.at(-3)) && /^Vent : /.test(g.tip.at(-2)) && /^Précipitations : /.test(g.tip.at(-1))
+      && (gran !== 'day' || g.tip[5].startsWith('Météo : ')) && g.tip.length === (gran === 'day' ? 9 : 8)), `${gran} with weather: consumption right after the offer lines and before Météo/Température/Vent`);
     ok(sOn.groups.every((g) => g.tipRich.length === g.tip.length && g.tipRich.every((s, i) => s.map((x) => x.text).join('') === g.tip[i])), `${gran} with weather: tipRich invariant`);
   }
 }
@@ -205,7 +205,7 @@ kva3Block('synthetic', imp, period);
 {
   const svg = readFileSync('src/ui/svg.ts', 'utf8'), css = readFileSync('src/app.css', 'utf8');
   const lines = Number(/MAX_TIP_LINES = (\d+)/.exec(svg)[1]);
-  ok(lines >= 8, `MAX_TIP_LINES (${lines}) covers the 8-line day tooltip`);
+  ok(lines >= 9, `MAX_TIP_LINES (${lines}) covers the 9-line day tooltip`);
   ok(/\.tip-text \.tt-kwh\s*\{\s*font-weight: 700; \}/.test(css), 'CSS: tt-kwh is bold and inherits the tooltip text colour (no new colour token)');
   const a = analyseFor({ from: '2024-01-01', to: '2025-12-31' });
   const sc = buildScene(a.offers, ALL, { from: '2024-09-10', to: '2025-12-20' }, 'year', SIZE);

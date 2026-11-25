@@ -12,7 +12,7 @@ import { Consumption, consumptionSegments, sumConsumption } from './kwh';
 import { DrillView } from './view';
 import { DayConsumption } from './types';
 import { LegendBlock, OFFER_BAR_NAME, OFFER_TAG, buildLegend } from './legend';
-import { DailyTemp, Seg, WeatherIconKind, aggregateTemps, aggregateWind, segsText, smoothTrend, tempTooltipSegments, weatherIconKind, weatherTooltipSegments, windTooltipSegments } from './weather';
+import { DailyTemp, Seg, WeatherIconKind, aggregatePrecip, aggregateTemps, aggregateWind, displayCode, precipTooltipSegments, segsText, smoothTrend, tempTooltipSegments, weatherIconKind, weatherTooltipSegments, windTooltipSegments } from './weather';
 
 export type Granularity = 'year' | 'month' | 'day';
 export type SegColour = 'B' | 'W' | 'R' | 'U';
@@ -430,15 +430,16 @@ export function buildScene(
       bucketMeans.push(agg.mean);
       bucketMins.push(agg.min);
       bucketMaxs.push(agg.max);
-      const ts = tempTooltipSegments(agg), ws = windTooltipSegments(aggregateWind(byDate, dates));
-      lines.push(segsText(ts), segsText(ws));
-      rich.push(ts, ws);
-      tempText = `${segsText(ts)}. ${segsText(ws)}.`;
+      const ts = tempTooltipSegments(agg), ws = windTooltipSegments(aggregateWind(byDate, dates)), ps = precipTooltipSegments(aggregatePrecip(byDate, dates));
+      lines.push(segsText(ts), segsText(ws), segsText(ps));
+      rich.push(ts, ws, ps);
+      tempText = `${segsText(ts)}. ${segsText(ws)}. ${segsText(ps)}.`;
       if (gran === 'day') {
-        const code = byDate.get(first)?.code ?? null;
+        const day = byDate.get(first);
+        const code = displayCode(day?.code, day?.precipMm);
         const wts = weatherTooltipSegments(code);
-        lines.splice(lines.length - 2, 0, segsText(wts));
-        rich.splice(rich.length - 2, 0, wts);
+        lines.splice(lines.length - 3, 0, segsText(wts));
+        rich.splice(rich.length - 3, 0, wts);
         tempText = `${segsText(wts)}. ${tempText}`;
         const kind = weatherIconKind(code);
         if (kind && gw >= GLYPH_MIN_W) {
