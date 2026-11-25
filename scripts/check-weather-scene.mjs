@@ -46,7 +46,8 @@ ok(w.ticks.length >= 3 && w.ticks.length <= 5, `degC ticks 3..5 (${w.ticks.map((
 ok(w.ticks.every((t, i, a) => i === 0 || (t.value > a[i - 1].value && t.y < a[i - 1].y)), 'degC ticks monotone (value up, y up the page)');
 ok(w.ticks.every((t) => t.y >= sc.plot.y - 1e-6 && t.y <= sc.plot.y + sc.plot.h + 1e-6), 'degC ticks inside the plot');
 eq(w.unit, '°C', 'unit label');
-ok(w.legend === 'Tendance de la température (moyenne)', 'legend label');
+// intentional expectation change (CHECK-14): the single mean entry became three entries (mean, min, max)
+ok(JSON.stringify(w.legend.map((e) => e.label)) === JSON.stringify(['Température moyenne', 'Température minimale', 'Température maximale']), 'legend entries'); 
 
 // nulls: a gap in the middle splits the line, leading nulls are skipped
 const gap = buildScene(offers, ALL, period, 'month', SIZE, temps((i, d) => (d >= '2025-08-01' && d < '2025-10-01' ? null : 10 + (i % 7))));
@@ -54,7 +55,7 @@ ok(gap.weather.segments.length === 2, `null months break the line into 2 segment
 ok(gap.groups.some((g) => g.tip.at(-2) === 'Température : donnée indisponible'), 'fully missing bucket says donnée indisponible');
 const allNull = buildScene(offers, ALL, period, 'month', SIZE, temps(() => null));
 // intentional expectation change (review): the former all-null assertion locked in a fake degC axis
-ok(allNull.weather.segments.length === 0 && allNull.weather.ticks.length === 0 && allNull.weather.legend === '' && allNull.weather.note === 'Météo non chargée pour cette vue', 'all-null: no trend, no degC axis, no legend entry, a note instead');
+ok(allNull.weather.segments.length === 0 && allNull.weather.ticks.length === 0 && allNull.weather.legend.length === 0 && allNull.weather.note === 'Météo non chargée pour cette vue', 'all-null: no trend, no degC axis, no legend entry, a note instead');
 const empty = buildScene(offers, ALL, period, 'month', SIZE, []);
 ok(empty.weather.segments.length === 0 && empty.groups.every((g) => g.tip.at(-2) === 'Température : donnée indisponible'), 'empty weather array handled');
 

@@ -157,16 +157,26 @@ function formatTempNumber(x: number): string {
   return x < 0 && r !== 0 ? `−${s}` : s;
 }
 
-/** Tooltip line for a bucket: "Température : moy. 12,3 °C · min −4,1 · max 31,0" (+ " (N/M jours)" when partial). */
-export function tempTooltipLine(a: TempAggregate): string {
-  if (a.mean === null && a.min === null && a.max === null) return 'Température : donnée indisponible';
-  const parts: string[] = [];
-  if (a.mean !== null) parts.push(`moy. ${formatTemp(a.mean)}`);
-  if (a.min !== null) parts.push(`min ${formatTempNumber(a.min)}`);
-  if (a.max !== null) parts.push(`max ${formatTempNumber(a.max)}`);
-  const partial = a.covered < a.total ? ` (${a.covered}/${a.total} jours)` : '';
-  return `Température : ${parts.join(' · ')}${partial}`;
+/** One run of tooltip text; `cls` (optional) is a CSS class for its colour/weight. */
+export interface Seg { text: string; cls?: string }
+/** The plain text of tooltip segments (what aria-labels and the box width use). */
+export const segsText = (segs: Seg[]): string => segs.map((x) => x.text).join('');
+const SEP: Seg = { text: ' · ' };
+
+/** Tooltip segments for a bucket: "Température : moy. 12,3 °C · min −4,1 · max 31,0" (+ " (N/M jours)" when partial); values are coloured. */
+export function tempTooltipSegments(a: TempAggregate): Seg[] {
+  if (a.mean === null && a.min === null && a.max === null) return [{ text: 'Température : donnée indisponible' }];
+  const parts: Seg[] = [];
+  if (a.mean !== null) parts.push({ text: `moy. ${formatTemp(a.mean)}`, cls: 'tt-mean' });
+  if (a.min !== null) parts.push({ text: `min ${formatTempNumber(a.min)}`, cls: 'tt-min' });
+  if (a.max !== null) parts.push({ text: `max ${formatTempNumber(a.max)}`, cls: 'tt-max' });
+  const out: Seg[] = [{ text: 'Température : ' }];
+  parts.forEach((p, i) => { if (i) out.push(SEP); out.push(p); });
+  if (a.covered < a.total) out.push({ text: ` (${a.covered}/${a.total} jours)` });
+  return out;
 }
+/** Plain-text temperature tooltip line. */
+export const tempTooltipLine = (a: TempAggregate): string => segsText(tempTooltipSegments(a));
 
 /** Aggregates wind over a bucket: mean of daily mean speeds; direction = speed-weighted circular (vector) mean of the
  *  days with both speed and direction (null when no weight or the resultant is ~0, e.g. opposite winds). covered = days with a speed. */
@@ -197,19 +207,22 @@ const LABELS: Array<[number[], string]> = [
   [[51, 53, 55], 'Bruine'], [[56, 57], 'Bruine verglaçante'], [[61, 63, 65], 'Pluie'], [[66, 67], 'Pluie verglaçante'],
   [[71, 73, 75, 77], 'Neige'], [[80, 81, 82], 'Averses'], [[85, 86], 'Averses de neige'], [[95], 'Orage'], [[96, 99], 'Orage avec grêle'],
 ];
-const GLYPHS: Array<[number[], string]> = [ // BMP symbols only (widely available fonts); decorative, the label is always in the tooltip
-  [[0], '\u2600'], [[1, 2], '\u26C5'], [[3], '\u2601'], [[45, 48], '\u224B'], [[51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82], '\u2602'],
-  [[71, 73, 75, 77, 85, 86], '\u2744'], [[95, 96, 99], '\u26C8'],
+/** Icon families, one per visual symbol (the drawing lives in src/ui, the mapping stays pure). */
+export type WeatherIconKind = 'clear' | 'partly' | 'cloud' | 'fog' | 'rain' | 'heavy-rain' | 'sleet' | 'snow' | 'storm';
+export const WEATHER_ICON_KINDS: readonly WeatherIconKind[] = ['clear', 'partly', 'cloud', 'fog', 'rain', 'heavy-rain', 'sleet', 'snow', 'storm'];
+const ICONS: Array<[number[], WeatherIconKind]> = [
+  [[0], 'clear'], [[1, 2], 'partly'], [[3], 'cloud'], [[45, 48], 'fog'], [[51, 53, 55, 61, 63, 80, 81], 'rain'], [[65, 82], 'heavy-rain'],
+  [[56, 57, 66, 67], 'sleet'], [[71, 73, 75, 77, 85, 86], 'snow'], [[95, 96, 99], 'storm'],
 ];
-const find = (t: Array<[number[], string]>, code: number | null | undefined): string => {
+const find = <T extends string>(t: Array<[number[], T]>, code: number | null | undefined): T | '' => {
   if (code === null || code === undefined) return '';
   for (const [cs, v] of t) if (cs.includes(code)) return v;
   return '';
 };
 /** French label of a WMO code ('' when null/unknown). */
 export const weatherLabel = (code: number | null | undefined): string => find(LABELS, code);
-/** One decorative plain-text glyph for a WMO code ('' when null/unknown). */
-export const weatherGlyph = (code: number | null | undefined): string => find(GLYPHS, code);
+/** Icon family of a WMO code ('' when null/unknown). */
+export const weatherIconKind = (code: number | null | undefined): WeatherIconKind | '' => find(ICONS, code);
 
 const COMPASS = ['nord', 'nord-nord-est', 'nord-est', 'est-nord-est', 'est', 'est-sud-est', 'sud-est', 'sud-sud-est',
   'sud', 'sud-sud-ouest', 'sud-ouest', 'ouest-sud-ouest', 'ouest', 'ouest-nord-ouest', 'nord-ouest', 'nord-nord-ouest'];
@@ -222,15 +235,22 @@ export function compassFr(deg: number): string {
 /** 'sud-ouest' -> 'du sud-ouest'; 'ouest' -> "de l'ouest"; 'est-nord-est' -> "de l'est-nord-est". */
 export const windFrom = (name: string): string => (name.startsWith('est') || name.startsWith('ouest') ? `de l'${name}` : `du ${name}`);
 
-/** "Vent : moy. 11 km/h · du sud-ouest" (+ " (N/M jours)" when partial); direction omitted when unknown or when the speed rounds to 0. */
-export function formatWind(speed: number | null, deg: number | null, covered = 1, total = 1): string {
-  if (speed === null) return 'Vent : donnée indisponible';
+/** Wind segments "Vent : moy. 11 km/h · du sud-ouest" (+ " (N/M jours)" when partial); direction omitted when unknown or when the speed rounds to 0. */
+export function windSegments(speed: number | null, deg: number | null, covered = 1, total = 1): Seg[] {
+  if (speed === null) return [{ text: 'Vent : donnée indisponible' }];
   const kmh = Math.round(speed);
-  const parts = [`moy. ${kmh}\u00A0km/h`];
-  if (deg !== null && kmh > 0) parts.push(windFrom(compassFr(deg)));
-  return `Vent : ${parts.join(' · ')}${covered < total ? ` (${covered}/${total} jours)` : ''}`;
+  const out: Seg[] = [{ text: 'Vent : ' }, { text: `moy. ${kmh}\u00A0km/h`, cls: 'tt-wind' }];
+  if (deg !== null && kmh > 0) out.push(SEP, { text: windFrom(compassFr(deg)), cls: 'tt-wind' });
+  if (covered < total) out.push({ text: ` (${covered}/${total} jours)` });
+  return out;
 }
+export const formatWind = (speed: number | null, deg: number | null, covered = 1, total = 1): string => segsText(windSegments(speed, deg, covered, total));
 /** Tooltip line of a bucket. */
 export const windTooltipLine = (a: WindAggregate): string => formatWind(a.speed, a.deg, a.covered, a.total);
+export const windTooltipSegments = (a: WindAggregate): Seg[] => windSegments(a.speed, a.deg, a.covered, a.total);
 /** Day-view tooltip line "Météo : Pluie" ('Météo : donnée indisponible' without a code). */
-export const weatherTooltipLine = (code: number | null | undefined): string => `Météo : ${weatherLabel(code) || 'donnée indisponible'}`;
+export const weatherTooltipSegments = (code: number | null | undefined): Seg[] => {
+  const l = weatherLabel(code);
+  return l ? [{ text: 'Météo : ' }, { text: l, cls: 'tt-strong' }] : [{ text: 'Météo : donnée indisponible' }];
+};
+export const weatherTooltipLine = (code: number | null | undefined): string => segsText(weatherTooltipSegments(code));

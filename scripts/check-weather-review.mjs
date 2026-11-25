@@ -82,11 +82,11 @@ const iso = (n) => new Date(n * MS).toISOString().slice(0, 10);
   const outside = [{ date: '2023-01-01', mean: 5, min: 1, max: 9 }]; // weather exists but not for these buckets
   for (const wx of [outside, [], days.map((d) => ({ date: d.date, mean: null, min: null, max: null }))]) {
     const sc = buildScene(offers, ['tempo', 'hchp', 'base'], period, 'month', { width: 960, height: 420 }, wx);
-    ok(sc.weather && sc.weather.ticks.length === 0 && sc.weather.segments.length === 0 && sc.weather.legend === '' && sc.weather.unit === '', 'no value: no degC ticks, no trend, no legend entry');
+    ok(sc.weather && sc.weather.ticks.length === 0 && sc.weather.segments.length === 0 && sc.weather.legend.length === 0 && sc.weather.unit === '', 'no value: no degC ticks, no trend, no legend entry');
     ok(sc.weather.note === 'Météo non chargée pour cette vue', 'no value: French note present');
   }
   const good = buildScene(offers, ['tempo'], period, 'month', { width: 960, height: 420 }, days.map((d) => ({ date: d.date, mean: 9, min: 8, max: 10 })));
-  ok(good.weather.note === '' && good.weather.legend.startsWith('Tendance') && good.weather.ticks.length >= 3, 'with values: legend entry, ticks, no note');
+  ok(good.weather.note === '' && good.weather.legend.length === 3 && good.weather.ticks.length >= 3, 'with values: legend entry, ticks, no note');
   const svg = readFileSync('src/ui/svg.ts', 'utf8'), chart = readFileSync('src/ui/chart.ts', 'utf8');
   ok(/ticks\.length === 0 && w\.segments\.length === 0/.test(svg), 'svg layer draws no weather group without ticks or segments');
   ok(/scene\.weather\?\.legend/.test(chart) && /scene\.weather\?\.note/.test(chart), 'chart layer gates the legend entry on the legend text and shows the note');

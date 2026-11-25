@@ -3,6 +3,8 @@
 /** Scene -> SVG DOM. Only createElementNS, presentation attributes and CSS classes (no style attribute). */
 import { Scene } from '../core/scene';
 import { DrillView } from '../core/view';
+import { Seg } from '../core/weather';
+import { ICONS, ICON_H, ICON_SIZE, IconEl } from './icons';
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -21,6 +23,12 @@ export interface SvgChart {
   hideTip(): void;
 }
 
+function iconEl(d: IconEl): SVGElement {
+  const e = s(d.tag, d.attrs, d.cls);
+  for (const k of d.kids ?? []) e.append(iconEl(k));
+  return e;
+}
+
 const MAX_TIP_LINES = 9; // longest tooltip: title + 3 offers + HC/HP share + weather + temperature + wind = 8, plus one spare
 
 /** Right-hand degC axis and smoothed trend line (drawn under the bars' hit areas, never interactive). */
@@ -33,11 +41,15 @@ function s_weather(scene: Scene): SVGGElement | null {
   const ax = plot.x + plot.w;
   for (const t of w.ticks) g.append(s('text', { x: ax + 8, y: t.y + 4, 'text-anchor': 'start' }, 'tick tick-temp', t.label));
   g.append(s('text', { x: ax + 8, y: plot.y - 8, 'text-anchor': 'start' }, 'tick tick-temp unit', w.unit));
-  for (const seg of w.segments) {
-    const d = seg.length === 1
-      ? `M${seg[0]!.x} ${seg[0]!.y}l0 0`
-      : seg.map((p, i) => `${i ? 'L' : 'M'}${Math.round(p.x * 100) / 100} ${Math.round(p.y * 100) / 100}`).join('');
-    for (const cls of ['trend-halo', 'trend-line']) g.append(s('path', { d, fill: 'none', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, cls));
+  // drawn min, max, then mean on top
+  const series: Array<[string, typeof w.segments]> = [['t-min', w.minSegments], ['t-max', w.maxSegments], ['t-mean', w.segments]];
+  for (const [id, segs] of series) {
+    for (const seg of segs) {
+      const d = seg.length === 1
+        ? `M${seg[0]!.x} ${seg[0]!.y}l0 0`
+        : seg.map((p, i) => `${i ? 'L' : 'M'}${Math.round(p.x * 100) / 100} ${Math.round(p.y * 100) / 100}`).join('');
+      for (const cls of ['trend-halo', `trend-line ${id}`]) g.append(s('path', { d, fill: 'none', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, cls));
+    }
   }
   return g;
 }
@@ -101,8 +113,10 @@ export function renderSvg(scene: Scene, onDrill: (target: DrillView, viaKeyboard
       ge.append(be);
     }
     if (g.glyph) {
-      const gl = s('text', { x: g.glyph.x, y: g.glyph.y, 'text-anchor': 'middle' }, 'wx-glyph', g.glyph.text);
+      const { x, y, size, kind } = g.glyph;
+      const gl = s('svg', { x: x - size / 2, y, width: size, height: (size * ICON_H) / ICON_SIZE, viewBox: `0 2 ${ICON_SIZE} ${ICON_H}` }, `wx-icon wx-${kind}`);
       gl.setAttribute('aria-hidden', 'true');
+      for (const d of ICONS[kind]) gl.append(iconEl(d));
       ge.append(gl);
     }
     if (g.ratio) {
@@ -151,7 +165,13 @@ export function renderSvg(scene: Scene, onDrill: (target: DrillView, viaKeyboard
   function showTip(gi: number): void {
     const g = scene.groups[gi]!;
     const txt = g.tip.slice(0, MAX_TIP_LINES);
-    lines.forEach((t, i) => { t.textContent = txt[i] ?? ''; });
+    lines.forEach((t, i) => {
+      t.textContent = ''; // only the plain text and tspans carrying a CSS class
+      for (const seg of (g.tipRich[i] ?? []) as Seg[]) {
+        if (seg.cls) t.append(s('tspan', {}, seg.cls, seg.text));
+        else t.append(document.createTextNode(seg.text));
+      }
+    });
     const w = Math.ceil(Math.max(...txt.map((x) => x.length)) * 6.3 + 16);
     const h = txt.length * 15 + 8;
     bg.setAttribute('width', String(w));

@@ -1,0 +1,67 @@
+{
+ "task": "weather-visuals",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "fast",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "assurance": "degraded: review bundle not installed; one fresh independent reviewer ran gates in a tree copy, fuzzed buildScene (1500 cases), rendered tooltips in Chromium, ran 13 mutants",
+ "auto_fixes_applied": 0,
+ "findings": [
+  {
+   "severity": "LOW",
+   "path": "src/app.css",
+   "summary": "min line weak over light-blue bars in dark mode",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "stronger blue, opacity .95"
+  },
+  {
+   "severity": "MEDIUM",
+   "path": "scripts/check-weather-visuals.mjs",
+   "summary": "icon-size mutant survived: no scene with 12<=cell<21",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "61/65/70-day scenes added; mutant killed"
+  },
+  {
+   "severity": "nit",
+   "path": "scripts/check-weather-visuals.mjs",
+   "summary": "wrong FR reference in header; tautological assertion",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": ""
+  },
+  {
+   "severity": "nit",
+   "path": "src/core/scene.ts",
+   "summary": "rain/heavy-rain/sleet hard to tell apart at ~12px",
+   "specialist": "reviewer",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "tooltip label carries the nuance"
+  },
+  {
+   "severity": "nit",
+   "path": "src/ui/svg.ts",
+   "summary": "hovering an icon shows no tooltip (icon band above grp-hit)",
+   "specialist": "reviewer",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "tooltip available on the bar"
+  }
+ ],
+ "skipped": [
+  "PDF-backed npm test: TEMPO_PDF_DIR unavailable",
+  "review bundle scripts: not installed"
+ ]
+}

@@ -10,7 +10,7 @@ import { dayNum, isoOf } from './days';
 import { formatEuro, frDate } from './format';
 import { DrillView } from './view';
 import { LegendBlock, OFFER_BAR_NAME, OFFER_TAG, buildLegend } from './legend';
-import { DailyTemp, aggregateTemps, aggregateWind, smoothTrend, tempTooltipLine, weatherGlyph, weatherLabel, weatherTooltipLine, windTooltipLine } from './weather';
+import { DailyTemp, Seg, WeatherIconKind, aggregateTemps, aggregateWind, segsText, smoothTrend, tempTooltipSegments, weatherIconKind, weatherTooltipSegments, windTooltipSegments } from './weather';
 
 export type Granularity = 'year' | 'month' | 'day';
 export type SegColour = 'B' | 'W' | 'R' | 'U';
@@ -68,10 +68,12 @@ export interface Ratio {
   h: number;
   hcW: number;
 }
-/** Day-view weather symbol drawn above the plot, centred on its day (decorative, aria-hidden in the DOM). */
-export interface DayGlyph { x: number; y: number; text: string }
-/** Minimum day-cell width (viewBox units) for the symbols to be drawn without overlapping each other. */
-export const GLYPH_MIN_W = 14;
+/** Day-view weather icon drawn above the plot: `kind` selects the drawing (src/ui); box `size` wide and size * 5/6 tall (24 x 20 window), centred on `x`, top edge at `y`. */
+export interface DayGlyph { x: number; y: number; size: number; kind: WeatherIconKind }
+/** Minimum day-cell width (viewBox units) for the icons to be drawn without overlapping each other. */
+export const GLYPH_MIN_W = 12;
+/** Largest icon side (viewBox units). */
+export const GLYPH_MAX = 20;
 export interface Group {
   key: string;
   label: string; // full French label
@@ -87,6 +89,7 @@ export interface Group {
   ratio: Ratio | null;
   aria: string;
   tip: string[];
+  tipRich: Seg[][]; // same lines as `tip`, split into coloured runs (concatenated texts equal the plain line)
   glyph: DayGlyph | null; // day view only, null without a weather code or when cells are too narrow
   drill: DrillView | null; // click/Enter target (year -> its months, month -> its days); null at day level
 }
@@ -94,11 +97,13 @@ export interface Tick { value: number; y: number; label: string }
 export interface WeatherScene {
   /** Smoothed bucket-mean trend, split into runs of consecutive buckets with data (nulls break the line). */
   segments: Array<Array<{ x: number; y: number }>>;
+  minSegments: Array<Array<{ x: number; y: number }>>; // same for the per-bucket minimum (min of daily mins)
+  maxSegments: Array<Array<{ x: number; y: number }>>; // same for the per-bucket maximum (max of daily maxes)
   ticks: Tick[]; // degC ticks for the right-hand axis (ascending value, y inside the plot)
   unit: string;
-  legend: string; // '' when there is no temperature to show (no legend entry)
+  legend: Array<{ cls: string; label: string }>; // mean, min, max entries; empty when there is no temperature to show
   note: string; // non-empty French note when the weather has no value for the visible buckets
-  glyphNote: string; // 'Symboles : météo du jour' only when at least one day symbol is drawn, else ''
+  glyphNote: string; // 'Symboles : météo du jour' only when at least one day icon is drawn, else ''
 }
 export interface Scene {
   width: number;
@@ -314,7 +319,7 @@ export function buildScene(
   const shares = shareMap(ratioOffer ? offers[ratioOffer].days : null, gran);
 
   const byDate = weather ? new Map(weather.map((d) => [d.date, d])) : null;
-  const bucketMeans: Array<number | null> = [];
+  const bucketMeans: Array<number | null> = [], bucketMins: Array<number | null> = [], bucketMaxs: Array<number | null> = [];
   const gw = plot.w / order.length;
   const pad = gran === 'day' ? 0 : gw * 0.12;
   const gap = gran === 'day' ? 0 : 2;
@@ -363,6 +368,7 @@ export function buildScene(
     const bx0 = gx + (gw - used) / 2;
     const bars: Bar[] = [];
     const lines: string[] = [];
+    const rich: Seg[][] = [];
     avail.forEach((o, bi) => {
       const agg = cell.get(k)!.get(o);
       const segments: Segment[] = [];
@@ -387,6 +393,7 @@ export function buildScene(
         offer: o, short: OFFER_TAG[o], label: barLabel(o, bw), x: bx0 + bi * (bw + gap), w: bw, y: yOf(total), totalMicro: total, segments, aria: `${aria}.`,
       });
       lines.push(`${OFFER_LABEL[o]} : ${formatEuro(total)}`);
+      rich.push([{ text: lines[lines.length - 1]! }]);
     });
 
     let ratio: Ratio | null = null;
@@ -400,25 +407,30 @@ export function buildScene(
       anyRatio = true;
     }
     const shareText = ratio ? `Heures creuses ${ratio.hcShare} %, heures pleines ${ratio.hpShare} % des kWh` : '';
-    if (shareText) lines.push(shareText);
+    if (shareText) { lines.push(shareText); rich.push([{ text: shareText }]); }
     if (byDate) {
       const dates: string[] = [];
       for (let n = dayNum(first); n <= dayNum(last); n++) dates.push(isoOf(n));
       const agg = aggregateTemps(byDate, dates);
       bucketMeans.push(agg.mean);
-      const tl = tempTooltipLine(agg);
-      lines.push(tl);
-      tempText = `${tl}.`;
-      const wl = windTooltipLine(aggregateWind(byDate, dates));
-      lines.push(wl);
-      tempText += ` ${wl}.`;
+      bucketMins.push(agg.min);
+      bucketMaxs.push(agg.max);
+      const ts = tempTooltipSegments(agg), ws = windTooltipSegments(aggregateWind(byDate, dates));
+      lines.push(segsText(ts), segsText(ws));
+      rich.push(ts, ws);
+      tempText = `${segsText(ts)}. ${segsText(ws)}.`;
       if (gran === 'day') {
         const code = byDate.get(first)?.code ?? null;
-        const wtl = weatherTooltipLine(code);
-        lines.splice(lines.length - 2, 0, wtl);
-        tempText = `${wtl}. ${tempText}`;
-        const text = weatherGlyph(code);
-        if (text && gw >= GLYPH_MIN_W) { glyph = { x: gx + gw / 2, y: plot.y - 6, text }; anyGlyph = true; }
+        const wts = weatherTooltipSegments(code);
+        lines.splice(lines.length - 2, 0, segsText(wts));
+        rich.splice(rich.length - 2, 0, wts);
+        tempText = `${segsText(wts)}. ${tempText}`;
+        const kind = weatherIconKind(code);
+        if (kind && gw >= GLYPH_MIN_W) {
+          const size = Math.min(GLYPH_MAX, gw - 1);
+          glyph = { x: gx + gw / 2, y: plot.y - 3 - (size * 5) / 6, size, kind };
+          anyGlyph = true;
+        }
       }
     }
     const drill: DrillView | null = gran === 'year' ? { kind: 'year', year: k } : gran === 'month' ? { kind: 'month', month: k } : null;
@@ -427,7 +439,7 @@ export function buildScene(
       (tempText ? ` ${tempText}` : '') + (drill ? ' Entrée pour détailler.' : '');
     groups.push({
       key: k, label: fullLabel, axisLabel, axisSub, partial, firstDate: first, lastDate: last,
-      x: gx, w: gw, cx: gx + gw / 2, bars, ratio, aria, tip: [fullLabel, ...lines], glyph, drill,
+      x: gx, w: gw, cx: gx + gw / 2, bars, ratio, aria, tip: [fullLabel, ...lines], tipRich: [[{ text: fullLabel }], ...rich], glyph, drill,
     });
   });
 
@@ -440,25 +452,34 @@ export function buildScene(
     `. ${groups.length} ${groups.length > 1 ? 'groupes' : 'groupe'}.`;
   let weatherScene: WeatherScene | null = null;
   if (byDate) {
-    const NO_DATA: WeatherScene = { segments: [], ticks: [], unit: '', legend: '', note: 'Météo non chargée pour cette vue', glyphNote: '' };
+    const NO_DATA: WeatherScene = { segments: [], minSegments: [], maxSegments: [], ticks: [], unit: '', legend: [], note: 'Météo non chargée pour cette vue', glyphNote: '' };
     try {
-      const trend = smoothTrend(bucketMeans).map((v) => (v !== null && Number.isFinite(v) ? v : null));
-      const vals = trend.filter((v): v is number => v !== null);
+      const clean = (a: Array<number | null>) => smoothTrend(a).map((v) => (v !== null && Number.isFinite(v) ? v : null));
+      const trend = clean(bucketMeans), tmin = clean(bucketMins), tmax = clean(bucketMaxs);
+      const vals = [...trend, ...tmin, ...tmax].filter((v): v is number => v !== null);
       if (vals.length === 0) weatherScene = NO_DATA;
       else {
         const tt = tempTicks(Math.min(...vals), Math.max(...vals));
         const lo = tt[0]!, hi = tt[tt.length - 1]!;
         const yT = (v: number) => plot.y + plot.h - ((v - lo) / (hi - lo)) * plot.h;
-        const segments: WeatherScene['segments'] = [];
-        let run: Array<{ x: number; y: number }> = [];
-        trend.forEach((v, i) => {
-          if (v === null) {
-            if (run.length) segments.push(run);
-            run = [];
-          } else run.push({ x: groups[i]!.cx, y: yT(v) });
-        });
-        if (run.length) segments.push(run);
-        weatherScene = { segments, ticks: tt.map((v) => ({ value: v, y: yT(v), label: tempTickLabel(v) })), unit: '°C', legend: 'Tendance de la température (moyenne)', note: '', glyphNote: '' };
+        const runs = (series: Array<number | null>): WeatherScene['segments'] => {
+          const out: WeatherScene['segments'] = [];
+          let run: Array<{ x: number; y: number }> = [];
+          series.forEach((v, i) => {
+            if (v === null) {
+              if (run.length) out.push(run);
+              run = [];
+            } else run.push({ x: groups[i]!.cx, y: yT(v) });
+          });
+          if (run.length) out.push(run);
+          return out;
+        };
+        weatherScene = {
+          segments: runs(trend), minSegments: runs(tmin), maxSegments: runs(tmax),
+          ticks: tt.map((v) => ({ value: v, y: yT(v), label: tempTickLabel(v) })), unit: '°C',
+          legend: [{ cls: 't-mean', label: 'Température moyenne' }, { cls: 't-min', label: 'Température minimale' }, { cls: 't-max', label: 'Température maximale' }],
+          note: '', glyphNote: '',
+        };
       }
     } catch {
       weatherScene = NO_DATA; // the overlay must never break the chart

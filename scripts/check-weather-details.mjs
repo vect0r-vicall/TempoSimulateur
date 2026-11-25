@@ -11,17 +11,17 @@ const W = await import('../.build-test/core/weather.mjs');
 const N = await import('../.build-test/net/weather.mjs');
 const { buildScene, GLYPH_MIN_W } = await import('../.build-test/core/scene.mjs');
 const { priceOffers } = await import('../.build-test/core/pricing.mjs');
-const { parseWeatherResponse, aggregateWind, weatherLabel, weatherGlyph, compassFr, formatWind, windTooltipLine, weatherTooltipLine, WMO_CODES, dayHasData } = W;
+const gw = (sc) => sc.plot.w / sc.groups.length;
+const { parseWeatherResponse, aggregateWind, weatherLabel, weatherIconKind, compassFr, formatWind, windTooltipLine, weatherTooltipLine, WMO_CODES, dayHasData } = W;
 const NB = '\u00A0';
 
-// ---- labels and glyphs ----
+// ---- labels and icon kinds (CHECK-13 expectation change: glyph characters became icon kinds; exhaustive mapping in CHECK-14) ----
 eq(WMO_CODES.length, 28, 'known WMO set has 28 codes');
-ok(WMO_CODES.every((c) => weatherLabel(c) !== '' && weatherGlyph(c) !== '' && [...weatherGlyph(c)].length === 1), 'every known code has a label and exactly one glyph');
+ok(WMO_CODES.every((c) => weatherLabel(c) !== '' && weatherIconKind(c) !== ''), 'every known code has a label and an icon kind');
 eq([0, 1, 2, 3, 45, 53, 63, 66, 73, 81, 95].map(weatherLabel), ['Ciel dégagé', 'Peu nuageux', 'Nuageux', 'Couvert', 'Brouillard', 'Bruine', 'Pluie', 'Pluie verglaçante', 'Neige', 'Averses', 'Orage'], 'French labels');
-eq([weatherLabel(null), weatherLabel(undefined), weatherLabel(4), weatherGlyph(null), weatherGlyph(7)], ['', '', '', '', ''], 'null/unknown code gives no label, no glyph');
+eq([weatherLabel(null), weatherLabel(undefined), weatherLabel(4), weatherIconKind(null), weatherIconKind(7)], ['', '', '', '', ''], 'null/unknown code gives no label, no icon kind');
 eq(weatherTooltipLine(63), 'Météo : Pluie', 'weather tooltip line');
 eq(weatherTooltipLine(null), 'Météo : donnée indisponible', 'weather tooltip line without code');
-ok(WMO_CODES.every((c) => [...weatherGlyph(c)].every((ch) => ch.codePointAt(0) <= 0xFFFF)), 'glyphs are BMP symbols (render with common fonts)');
 
 // ---- compass ----
 const names = ['nord', 'nord-nord-est', 'nord-est', 'est-nord-est', 'est', 'est-sud-est', 'sud-est', 'sud-sud-est', 'sud', 'sud-sud-ouest', 'sud-ouest', 'ouest-sud-ouest', 'ouest', 'ouest-nord-ouest', 'nord-ouest', 'nord-nord-ouest'];
@@ -138,9 +138,9 @@ const apr = { from: '2025-04-01', to: '2025-04-30' };
 { // day view
   const sc = buildScene(offers, ALL, apr, 'day', SIZE, full);
   eq(sc.groups.length, 30, 'day view 30 groups');
-  ok(sc.groups.every((g) => g.glyph && g.glyph.text === weatherGlyph(full.find((d) => d.date === g.firstDate).code)), 'every day with a code has its glyph');
+  ok(sc.groups.every((g) => g.glyph && g.glyph.kind === weatherIconKind(full.find((d) => d.date === g.firstDate).code)), 'every day with a code has its icon kind');
   ok(sc.groups.every((g) => g.glyph.x === g.cx && g.glyph.x >= sc.plot.x && g.glyph.x <= sc.plot.x + sc.plot.w), 'glyph x centred on the day, inside the plot width');
-  ok(sc.groups.every((g) => g.glyph.y > 0 && g.glyph.y < sc.plot.y), 'glyph baseline sits in the band above the plot (no collision with bars, trend or halo)');
+  ok(sc.groups.every((g) => g.glyph.y >= 0 && g.glyph.y + (g.glyph.size * 5) / 6 <= sc.plot.y && g.glyph.size <= gw(sc) && g.glyph.size <= 20), 'icon box sits in the band above the plot, no wider than its cell (no collision with bars, lines or halo)');
   const t = sc.weather.segments.flat();
   ok(t.every((p) => p.y >= sc.plot.y) && sc.groups.every((g) => g.bars.every((b) => b.y >= sc.plot.y - 1e-6)), 'trend and bars stay at or below the plot top, below the glyph band');
   ok(sc.groups.every((g) => g.tip.length === 8), 'day tooltip: title + 3 offers + share + météo + température + vent = 8 lines');
@@ -188,7 +188,7 @@ const apr = { from: '2025-04-01', to: '2025-04-30' };
 // ---- DOM layer source: decorative glyph, no style attribute ----
 {
   const svg = readFileSync('src/ui/svg.ts', 'utf8');
-  ok(/'wx-glyph'/.test(svg) && /aria-hidden/.test(svg.slice(svg.indexOf("'wx-glyph'"), svg.indexOf("'wx-glyph'") + 200)) && !/setAttribute\('style'/.test(svg), 'glyph text is class based and aria-hidden, no style attribute');
+  ok(/wx-icon/.test(svg) && /aria-hidden/.test(svg.slice(svg.indexOf('wx-icon'), svg.indexOf('wx-icon') + 300)) && !/setAttribute\('style'/.test(svg), 'icon svg is class based and aria-hidden, no style attribute');
   ok(/MAX_TIP_LINES = 9/.test(svg), 'MAX_TIP_LINES covers the 8-line day tooltip');
   ok(/legend-note', scene\.weather\.glyphNote/.test(readFileSync('src/ui/chart.ts', 'utf8')), 'legend note drawn from scene.weather.glyphNote');
 }

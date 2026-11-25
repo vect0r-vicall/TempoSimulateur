@@ -21,7 +21,7 @@ Period selector (default last 12 months), offer checkboxes, bar chart by year/mo
 bar colour reflects Tempo day colour and HC/HP ratio, period recap summing selected offers.
 
 ## Weather overlay (opt-in)
-Optional outdoor-temperature overlay from Open-Meteo (place search, daily archive), shown as tooltip lines, a smoothed trend line and a right-hand degC axis, plus the daily weather hint (WMO code: tooltip line and day-view glyph) and wind (mean speed and direction only, no gusts) in the tooltips (FR-041..FR-047). Never requested before explicit user action; fetch confined to src/net/weather.ts; pure logic in src/core/weather.ts.
+Optional outdoor-temperature overlay from Open-Meteo (place search, daily archive), shown as coloured tooltip lines, smoothed mean/min/max temperature lines (green/blue/red) and a right-hand degC axis, plus the daily weather hint (WMO code: tooltip line and day-view SVG icon) and wind (mean speed and direction only, no gusts) in the tooltips (FR-041..FR-050). Never requested before explicit user action; fetch confined to src/net/weather.ts; pure logic in src/core/weather.ts.
 
 ## Core (70/30)
 CSV import, pricing engine, period selector, monthly chart, recap. Then year/day views, colour/ratio overlays, polish.

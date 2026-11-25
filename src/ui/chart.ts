@@ -63,27 +63,29 @@ function swatch(e: LegendEntry): SVGSVGElement {
   return svg;
 }
 
-function weatherLegend(label: string): HTMLElement {
+function weatherLegend(entries: Array<{ cls: string; label: string }>): HTMLElement {
   const box = node('section', 'legend-block');
   const h = node('h3', 'legend-title');
   h.append(node('span', undefined, 'Météo'));
-  const sw = document.createElementNS(NS, 'svg');
-  sw.setAttribute('viewBox', '0 0 28 18');
-  sw.setAttribute('class', 'swatch');
-  sw.setAttribute('aria-hidden', 'true');
-  const line = document.createElementNS(NS, 'path');
-  line.setAttribute('d', 'M2 13L10 6L18 11L26 4');
-  line.setAttribute('fill', 'none');
-  line.setAttribute('stroke-linejoin', 'round');
-  line.setAttribute('stroke-linecap', 'round');
-  line.setAttribute('class', 'trend-line');
-  const halo = line.cloneNode(false) as SVGPathElement;
-  halo.setAttribute('class', 'trend-halo');
-  sw.append(halo, line);
-  const li = node('li', 'legend-item');
-  li.append(sw, node('span', undefined, label));
   const ul = node('ul', 'legend-list');
-  ul.append(li);
+  for (const e of entries) {
+    const sw = document.createElementNS(NS, 'svg');
+    sw.setAttribute('viewBox', '0 0 28 18');
+    sw.setAttribute('class', 'swatch');
+    sw.setAttribute('aria-hidden', 'true');
+    const line = document.createElementNS(NS, 'path');
+    line.setAttribute('d', 'M2 13L10 6L18 11L26 4');
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke-linejoin', 'round');
+    line.setAttribute('stroke-linecap', 'round');
+    line.setAttribute('class', `trend-line ${e.cls}`);
+    const halo = line.cloneNode(false) as SVGPathElement;
+    halo.setAttribute('class', 'trend-halo');
+    sw.append(halo, line);
+    const li = node('li', 'legend-item');
+    li.append(sw, node('span', undefined, e.label));
+    ul.append(li);
+  }
   box.append(h, ul);
   return box;
 }
@@ -266,7 +268,7 @@ export function initChart(): Chart {
     summary.textContent = scene.summary;
     notes.textContent = scene.notes.join(' ');
     for (const b of scene.legend) legend.append(legendBlock(b));
-    if (scene.weather?.legend) legend.append(weatherLegend(scene.weather.legend));
+    if (scene.weather?.legend.length) legend.append(weatherLegend(scene.weather.legend));
     if (scene.weather?.note) legend.append(node('p', 'legend-note weather-missing', scene.weather.note));
     if (scene.weather?.glyphNote) legend.append(node('p', 'legend-note', scene.weather.glyphNote));
     if (scene.empty) {

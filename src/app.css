@@ -174,7 +174,9 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
   --c-base: #f5a524;
   --c-ratio-hc: #38bdf8; --c-ratio-hp: #1e3a8a;
   --grid: #e3e8f3; --axis: #8b97b5; --hatch: rgba(0, 0, 0, .35);
-  --trend: #c2410c; --trend-halo: #ffffff;
+  --t-min: #4f8fd8; --t-max: #e2674f; --t-mean: #3aa56b; --trend-halo: #ffffff;
+  --t-min-text: #1f64b8; --t-max-text: #b3361f; --t-mean-text: #1a7a45; --t-wind-text: #0f766e;
+  --wx-sun: #f7c244; --wx-sun-edge: #e09a14; --wx-cloud: #eef2f9; --wx-cloud-edge: #8da0c2; --wx-rain: #4f8fd8; --wx-snow: #cfe6fb; --wx-snow-edge: #5a97d6; --wx-bolt: #f7c244; --wx-bolt-edge: #d08a0c; --wx-fog: #8da0c2;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -187,7 +189,9 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
     --c-base: #f5a524;
     --c-ratio-hc: #38bdf8; --c-ratio-hp: #93a7f0;
     --grid: #26304f; --axis: #6f7ca0; --hatch: rgba(0, 0, 0, .45);
-    --trend: #fb923c; --trend-halo: #161d31;
+    --t-min: #7fb4ff; --t-max: #f58a74; --t-mean: #54c88c; --trend-halo: #161d31;
+    --t-min-text: #86b9f7; --t-max-text: #ff9f8c; --t-mean-text: #6fd9a2; --t-wind-text: #62cfc6;
+    --wx-sun: #ffd45e; --wx-sun-edge: #f5ad2b; --wx-cloud: #c3cee6; --wx-cloud-edge: #8fa0c4; --wx-rain: #6fa8f0; --wx-snow: #e8f3ff; --wx-snow-edge: #8fbcf0; --wx-bolt: #ffd45e; --wx-bolt-edge: #f5ad2b; --wx-fog: #8fa0c4;
   }
 }
 
@@ -236,14 +240,23 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
 .seg-base { fill: var(--c-base); }
 .seg-ratio-hc { fill: var(--c-ratio-hc); } .seg-ratio-hp { fill: var(--c-ratio-hp); }
 .ratio { stroke: none; animation: none; }
-.trend-line { fill: none; stroke: var(--trend); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; opacity: .9; }
-.trend-halo { fill: none; stroke: var(--trend-halo); stroke-width: 5.5; stroke-linejoin: round; stroke-linecap: round; opacity: .85; }
+.trend-line { fill: none; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; opacity: .9; }
+.trend-line.t-mean { stroke: var(--t-mean); stroke-width: 2; }
+.trend-line.t-min { stroke: var(--t-min); opacity: .95; }
+.trend-line.t-max { stroke: var(--t-max); opacity: .95; }
+.trend-halo { fill: none; stroke: var(--trend-halo); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; opacity: .85; }
 .chart-svg .weather { pointer-events: none; }
-.chart-svg .tick-temp { fill: var(--trend); }
-.chart-svg .wx-glyph { font-size: 13px; fill: var(--text); pointer-events: none; }
+.chart-svg .tick-temp { fill: var(--muted); }
+.chart-svg .wx-icon { pointer-events: none; overflow: visible; }
+.wx-icon .wx-sun { fill: var(--wx-sun); stroke: var(--wx-sun-edge); stroke-width: 1; }
+.wx-icon .wx-ray { stroke: var(--wx-sun-edge); stroke-width: 1.8; stroke-linecap: round; }
+.wx-icon .wx-cloud { fill: var(--wx-cloud); stroke: var(--wx-cloud-edge); stroke-width: 1.2; stroke-linejoin: round; }
+.wx-icon .wx-drop { stroke: var(--wx-rain); stroke-width: 1.9; stroke-linecap: round; }
+.wx-icon .wx-flake { fill: var(--wx-snow); stroke: var(--wx-snow-edge); stroke-width: .9; }
+.wx-icon .wx-bolt { fill: var(--wx-bolt); stroke: var(--wx-bolt-edge); stroke-width: 1; stroke-linejoin: round; }
+.wx-icon .wx-fog { stroke: var(--wx-fog); stroke-width: 1.9; stroke-linecap: round; }
 .chart-svg .tick-temp.unit { font-weight: 700; }
-.swatch .trend-line { stroke-width: 2.5; }
-.swatch .trend-halo { stroke-width: 5.5; }
+.swatch .trend-halo { stroke-width: 4; }
 .legend .weather-missing { grid-column: 1 / -1; margin: 0; }
 .weather-box { display: grid; gap: .5rem; }
 .weather-box .check { display: flex; gap: .5rem; align-items: flex-start; }
@@ -262,6 +275,12 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
 .tip-bg { fill: var(--card); stroke: var(--border); stroke-width: 1; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .25)); }
 .chart-svg .tip-text { fill: var(--text); }
 .chart-svg .tip-text.title { font-weight: 700; }
+.chart-svg .tip-text { white-space: pre; }
+.chart-svg .tip-text .tt-mean { fill: var(--t-mean-text); font-weight: 600; }
+.chart-svg .tip-text .tt-min { fill: var(--t-min-text); font-weight: 600; }
+.chart-svg .tip-text .tt-max { fill: var(--t-max-text); font-weight: 600; }
+.chart-svg .tip-text .tt-wind { fill: var(--t-wind-text); font-weight: 600; }
+.chart-svg .tip-text .tt-strong { font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { .chart-svg .bar .seg { animation: none; } }
 
 /* polish */
