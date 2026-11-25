@@ -133,6 +133,9 @@ As the host, I want a static page that cannot send data or interact with the ser
 #### Assumptions box
 - **FR-024** [US-2,3]: The page MUST show a small, always-visible assumptions box stating: HC hours assumed 22:00-06:00; Tempo estimate on HC/HP periods; excluded period-boundary days; estimated gap days count; kVA source (inferred 'au moins' / default 'à vérifier' / manual); last-grid-reuse; calendar credit.
 
+#### Applied tariffs
+- **FR-030** [US-2,3]: At the bottom of the page (after the assumptions box, before the footer line) a card 'Tarifs appliqués' MUST show, once a file is loaded and re-rendered on every update (file, period, kVA, offers), the prices actually used by the simulation: a one-line summary (kVA, TTC, units), then one section per EDF price grid applied to at least one day of the effective period (grid = latest effective <= day, same rule as pricing), in chronological order, titled 'Du JJ/MM/AAAA au JJ/MM/AAAA — grille du 1er février 2026' (sub-range covered by the grid), with a note when the last grid is carried over beyond its date, a source line (label derived from the grid date plus the PDF file name `tarifs-YYYYMMDD.pdf`, plain text, no link) and a table (caption, th scope) with, per selected offer, the monthly subscription for the chosen kVA ('19,56 €') and its kWh prices in c€/kWh ('19,27 c€/kWh'; Base: Prix du kWh; HC/HP: Heures pleines, Heures creuses; Tempo: Bleu/Blanc/Rouge heures creuses/pleines). An offer without a row for the chosen kVA in that grid reads 'Non proposé pour cette puissance dans cette grille' (never 0). A second source line crediting RTE via api-couleur-tempo.fr appears only when the Tempo estimate on HC/HP days was used. The table scrolls horizontally inside its wrapper on narrow screens. The card is hidden until a file is loaded.
+
 #### Data
 - **FR-022** [US-2]: Price tables MUST be generated and verified against the nine PDF grids, with the 2026-08 Tempo prices also checked against api-couleur-tempo.fr /api/tarifs.
 - **FR-023** [US-2,4]: The embedded Tempo calendar MUST cover 2022-09-01.. and MUST satisfy 300/43/22 per complete season and match counter-derived colours in the Tempo era, else the build fails.
@@ -158,6 +161,7 @@ As the host, I want a static page that cannot send data or interact with the ser
 - AC-17 [US-4, FR-027]: Every group has tooltip lines and an aria-label; no readout element exists in the chart card (browser smoke: only the SVG bubble appears on hover) → CHECK-3 and smoke.
 - AC-18 [US-4, FR-028]: The bar label rule returns full / one-letter / none from the bar width with the 0.62 em estimate, and labels fit inside their bars at year, month and day level → CHECK-3.
 - AC-19 [US-4, FR-029]: The legend model has one block per selected offer, in bar order, with exactly the specified entries, tags, hatch/dots flags and unavailable-offer notes, plus the ratio block → CHECK-3.
+- AC-20 [US-2,3, FR-030]: The tariffs model returns one section per grid applied in the period with correct grid date and sub-range (straddling 2026-07-31/2026-08-01 -> 2 sections with different Tempo prices equal to the grid values at 9 kVA), flags last-grid reuse, marks offers lacking the kVA row unavailable, honours the offer selection, and derives the source label and file name from the grid date; French formats '19,56 €' and '19,27 c€/kWh' → CHECK-7; browser smoke: the card is last in the page, updates with kVA/offers and is hidden before a file is loaded.
 
 ## Edge Cases
 
@@ -172,6 +176,7 @@ All are plain self-contained scripts: exit 0 = pass, 1 = assertion fired, >= 2 =
 - CHECK-4 [AC-10, AC-12]: `node scripts/check-forbidden-apis.mjs` → scans src/ and dist/ for FR-018 patterns, exit 0.
 - CHECK-5 [AC-11]: `node scripts/check-dist.mjs` → CSP meta first in head, no connect-src, five-file dist, `_headers` content, exit 0.
 - CHECK-6 [AC-13]: `node scripts/check-data.mjs` → price table vs independent PDF re-parse (when PDFs present) and calendar 300/43/22 and counter cross-check, exit 0.
+- CHECK-7 [AC-20]: `node scripts/check-tariffs.mjs` → pure 'Tarifs appliqués' model on synthetic periods (sections per grid, ranges, reuse flag, unavailable rows, offer filter, source label/file, French formats), exit 0.
 
 ## Claims Metadata
 

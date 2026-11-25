@@ -10,6 +10,8 @@ import { KvaSource, kvaSourceLabel } from './core/assumptions';
 import { Controls, createControls } from './ui/controls';
 import { initDropzone } from './ui/dropzone';
 import { Chart, initChart } from './ui/chart';
+import { buildTariffs } from './core/tariffs';
+import { renderTariffs } from './ui/tariffs';
 import { renderAssumptions } from './ui/assumptions';
 import { renderPeriods, renderRecap } from './ui/recap';
 import { el, node } from './ui/dom';
@@ -58,6 +60,7 @@ function update(): void {
   const index = state.session.index;
   if (!index || !state.period) {
     section.hidden = true;
+    renderTariffs(null);
     renderAssumptions(null, state.kvaSource, state.kva, suggested);
     return;
   }
@@ -67,6 +70,7 @@ function update(): void {
   renderRecap(a, buildRecap(a, state.selected));
   renderPeriods(index.periods, index.excluded);
   renderAssumptions(a, state.kvaSource, state.kva, suggested);
+  renderTariffs(buildTariffs(state.period, state.kva, state.selected, a));
   const priced = pricedRange(index.days);
   if (priced) chart.render({ a, selected: state.selected, priced, analyseFor: (p) => analyse(index, p, state.kva) });
 }

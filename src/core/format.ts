@@ -28,3 +28,18 @@ export function displayName(name: string): string {
   const t = name.replace(/[\u202A-\u202E\u2066-\u2069]/g, '');
   return t.length > 60 ? t.slice(0, 59) + '…' : t;
 }
+
+const FR_MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+/** ISO date -> "1er février 2026". */
+export function frLongDate(iso: string): string {
+  const d = Number(iso.slice(8, 10));
+  return `${d === 1 ? '1er' : String(d)} ${FR_MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
+}
+
+/** Integer micro-euros per kWh -> "19,27 c€/kWh" (cents with two decimals). */
+export function formatCentsPerKwh(microPerKwh: number): string {
+  const c = Math.round(microPerKwh / 100); // hundredths of a cent
+  const whole = Math.floor(c / 100);
+  return `${whole},${String(c - whole * 100).padStart(2, '0')} c€/kWh`;
+}
