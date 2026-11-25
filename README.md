@@ -7,7 +7,7 @@ le coût de votre consommation est calculé pour chaque offre avec les grilles t
 
 Sous le titre de la vue, la carte du graphique affiche le **total de chaque offre pour la plage réellement affichée** (période sélectionnée, année ou mois détaillé), avec l'offre la moins chère.
 
-En option, une **superposition météo** (désactivée par défaut) ajoute au graphique la tendance de la température du lieu choisi, via Open-Meteo (voir Confidentialité). Elle suit la période appliquée ; la réponse du service est limitée (1 Mo, au plus autant de jours que la période, 25 ans maximum) et la météo des dates trop récentes (environ 5 jours de décalage) peut manquer.
+En option, une **superposition météo** (désactivée par défaut) ajoute au graphique la tendance de la température du lieu choisi, via Open-Meteo (voir Confidentialité), ainsi que, dans les infobulles, le vent (vitesse moyenne et direction, sans rafales) et, dans la vue par jour, le temps du jour (ciel dégagé, nuageux, pluie…) avec un petit symbole au-dessus de chaque jour. Elle suit la période appliquée ; la réponse du service est limitée (1 Mo, au plus autant de jours que la période, 25 ans maximum) et la météo des dates trop récentes (environ 5 jours de décalage) peut manquer.
 
 Dans le bloc Période, trois raccourcis (**Toute la période importée**, **Dernière année**, **2 dernières années**) fixent les dates en se terminant au dernier jour valorisé de vos données ; le bouton correspondant à la période appliquée est mis en évidence.
 

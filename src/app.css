@@ -240,6 +240,7 @@ input[type="date"]:focus-visible, select:focus-visible { outline: none; border-c
 .trend-halo { fill: none; stroke: var(--trend-halo); stroke-width: 5.5; stroke-linejoin: round; stroke-linecap: round; opacity: .85; }
 .chart-svg .weather { pointer-events: none; }
 .chart-svg .tick-temp { fill: var(--trend); }
+.chart-svg .wx-glyph { font-size: 13px; fill: var(--text); pointer-events: none; }
 .chart-svg .tick-temp.unit { font-weight: 700; }
 .swatch .trend-line { stroke-width: 2.5; }
 .swatch .trend-halo { stroke-width: 5.5; }

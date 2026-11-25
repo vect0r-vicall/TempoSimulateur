@@ -79,7 +79,7 @@ export async function fetchDailyTemps(lat: number, lon: number, start: string, e
   const hit = cache.get(key);
   if (hit) return hit;
   const url = `${ARCHIVE_ORIGIN}/v1/archive?latitude=${rlat}&longitude=${rlon}&start_date=${start}&end_date=${end}`
-    + '&daily=temperature_2m_mean,temperature_2m_max,temperature_2m_min&timezone=auto';
+    + '&daily=temperature_2m_mean,temperature_2m_max,temperature_2m_min,weather_code,wind_speed_10m_mean,wind_direction_10m_dominant&timezone=auto';
   const raw = await getJson(url, fetchFn);
   if (!raw.ok) return raw;
   const p = parseWeatherResponse(raw.json, start, end);

@@ -21,7 +21,7 @@ export interface SvgChart {
   hideTip(): void;
 }
 
-const MAX_TIP_LINES = 9; // title + 3 offers + HC/HP share + temperature, with headroom
+const MAX_TIP_LINES = 9; // longest tooltip: title + 3 offers + HC/HP share + weather + temperature + wind = 8, plus one spare
 
 /** Right-hand degC axis and smoothed trend line (drawn under the bars' hit areas, never interactive). */
 function s_weather(scene: Scene): SVGGElement | null {
@@ -99,6 +99,11 @@ export function renderSvg(scene: Scene, onDrill: (target: DrillView, viaKeyboard
         be.append(s('text', { x: b.x + b.w / 2, y: b.y - 3, 'text-anchor': 'middle' }, 'bar-tag', b.label.text));
       }
       ge.append(be);
+    }
+    if (g.glyph) {
+      const gl = s('text', { x: g.glyph.x, y: g.glyph.y, 'text-anchor': 'middle' }, 'wx-glyph', g.glyph.text);
+      gl.setAttribute('aria-hidden', 'true');
+      ge.append(gl);
     }
     if (g.ratio) {
       const r = g.ratio;

@@ -1,0 +1,67 @@
+{
+ "task": "weather-details",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "fast",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "assurance": "degraded: review bundle not installed; one fresh independent reviewer executed the gates, fuzzed buildScene (3000 cases) and ran 21 mutants (19 killed, 2 equivalent)",
+ "auto_fixes_applied": 0,
+ "findings": [
+  {
+   "severity": "LOW",
+   "path": "src/core/scene.ts",
+   "summary": "code/wind-only data (no temperature) yields the 'M\u00e9t\u00e9o non charg\u00e9e pour cette vue' note while glyphs and wind tooltips are drawn",
+   "specialist": "reviewer",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "unreachable with real ERA5 data (temperature always present when other fields are); cosmetic"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/core/weather.ts",
+   "summary": "formatWind does not re-validate non-finite input",
+   "specialist": "reviewer",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "unreachable through parseWeatherResponse; same as the pre-existing temperature behaviour"
+  },
+  {
+   "severity": "nit",
+   "path": "src/core/weather.ts",
+   "summary": "umbrella glyph shared by drizzle/rain/freezing variants",
+   "specialist": "reviewer",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "label in tooltip carries the nuance"
+  },
+  {
+   "severity": "nit",
+   "path": "src/core/scene.ts",
+   "summary": "GLYPH_MIN_W=14 vs 13px font: neighbouring glyphs nearly touch at threshold",
+   "specialist": "reviewer",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "legible in screenshots"
+  },
+  {
+   "severity": "nit",
+   "path": "scripts/check-weather-details.mjs",
+   "summary": "tooltip width assertion is a loose proxy; wSum+=1 mutant survives",
+   "specialist": "reviewer",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "weak gap only"
+  }
+ ],
+ "skipped": [
+  "PDF-backed npm test: TEMPO_PDF_DIR unavailable",
+  "review bundle scripts: not installed"
+ ]
+}

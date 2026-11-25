@@ -10,7 +10,7 @@ import { dayNum, isoOf } from './days';
 import { formatEuro, frDate } from './format';
 import { DrillView } from './view';
 import { LegendBlock, OFFER_BAR_NAME, OFFER_TAG, buildLegend } from './legend';
-import { DailyTemp, aggregateTemps, smoothTrend, tempTooltipLine } from './weather';
+import { DailyTemp, aggregateTemps, aggregateWind, smoothTrend, tempTooltipLine, weatherGlyph, weatherLabel, weatherTooltipLine, windTooltipLine } from './weather';
 
 export type Granularity = 'year' | 'month' | 'day';
 export type SegColour = 'B' | 'W' | 'R' | 'U';
@@ -68,6 +68,10 @@ export interface Ratio {
   h: number;
   hcW: number;
 }
+/** Day-view weather symbol drawn above the plot, centred on its day (decorative, aria-hidden in the DOM). */
+export interface DayGlyph { x: number; y: number; text: string }
+/** Minimum day-cell width (viewBox units) for the symbols to be drawn without overlapping each other. */
+export const GLYPH_MIN_W = 14;
 export interface Group {
   key: string;
   label: string; // full French label
@@ -83,6 +87,7 @@ export interface Group {
   ratio: Ratio | null;
   aria: string;
   tip: string[];
+  glyph: DayGlyph | null; // day view only, null without a weather code or when cells are too narrow
   drill: DrillView | null; // click/Enter target (year -> its months, month -> its days); null at day level
 }
 export interface Tick { value: number; y: number; label: string }
@@ -93,6 +98,7 @@ export interface WeatherScene {
   unit: string;
   legend: string; // '' when there is no temperature to show (no legend entry)
   note: string; // non-empty French note when the weather has no value for the visible buckets
+  glyphNote: string; // 'Symboles : météo du jour' only when at least one day symbol is drawn, else ''
 }
 export interface Scene {
   width: number;
@@ -316,10 +322,12 @@ export function buildScene(
   const groups: Group[] = [];
   let anyPartial = false;
   let anyRatio = false;
+  let anyGlyph = false;
   let prevYear = '';
 
   order.forEach((k, i) => {
     let tempText = '';
+    let glyph: DayGlyph | null = null;
     const { first, last } = info.get(k)!;
     let partial = false;
     let label: string;
@@ -401,6 +409,17 @@ export function buildScene(
       const tl = tempTooltipLine(agg);
       lines.push(tl);
       tempText = `${tl}.`;
+      const wl = windTooltipLine(aggregateWind(byDate, dates));
+      lines.push(wl);
+      tempText += ` ${wl}.`;
+      if (gran === 'day') {
+        const code = byDate.get(first)?.code ?? null;
+        const wtl = weatherTooltipLine(code);
+        lines.splice(lines.length - 2, 0, wtl);
+        tempText = `${wtl}. ${tempText}`;
+        const text = weatherGlyph(code);
+        if (text && gw >= GLYPH_MIN_W) { glyph = { x: gx + gw / 2, y: plot.y - 6, text }; anyGlyph = true; }
+      }
     }
     const drill: DrillView | null = gran === 'year' ? { kind: 'year', year: k } : gran === 'month' ? { kind: 'month', month: k } : null;
     const aria =
@@ -408,7 +427,7 @@ export function buildScene(
       (tempText ? ` ${tempText}` : '') + (drill ? ' Entrée pour détailler.' : '');
     groups.push({
       key: k, label: fullLabel, axisLabel, axisSub, partial, firstDate: first, lastDate: last,
-      x: gx, w: gw, cx: gx + gw / 2, bars, ratio, aria, tip: [fullLabel, ...lines], drill,
+      x: gx, w: gw, cx: gx + gw / 2, bars, ratio, aria, tip: [fullLabel, ...lines], glyph, drill,
     });
   });
 
@@ -421,7 +440,7 @@ export function buildScene(
     `. ${groups.length} ${groups.length > 1 ? 'groupes' : 'groupe'}.`;
   let weatherScene: WeatherScene | null = null;
   if (byDate) {
-    const NO_DATA: WeatherScene = { segments: [], ticks: [], unit: '', legend: '', note: 'Météo non chargée pour cette vue' };
+    const NO_DATA: WeatherScene = { segments: [], ticks: [], unit: '', legend: '', note: 'Météo non chargée pour cette vue', glyphNote: '' };
     try {
       const trend = smoothTrend(bucketMeans).map((v) => (v !== null && Number.isFinite(v) ? v : null));
       const vals = trend.filter((v): v is number => v !== null);
@@ -439,11 +458,12 @@ export function buildScene(
           } else run.push({ x: groups[i]!.cx, y: yT(v) });
         });
         if (run.length) segments.push(run);
-        weatherScene = { segments, ticks: tt.map((v) => ({ value: v, y: yT(v), label: tempTickLabel(v) })), unit: '°C', legend: 'Tendance de la température (moyenne)', note: '' };
+        weatherScene = { segments, ticks: tt.map((v) => ({ value: v, y: yT(v), label: tempTickLabel(v) })), unit: '°C', legend: 'Tendance de la température (moyenne)', note: '', glyphNote: '' };
       }
     } catch {
       weatherScene = NO_DATA; // the overlay must never break the chart
     }
+    if (anyGlyph) weatherScene = { ...weatherScene!, glyphNote: 'Symboles : météo du jour' };
   }
   return { ...base, groups, ticks, axisMaxMicro: axisMax, legend, notes, summary, weather: weatherScene };
 }

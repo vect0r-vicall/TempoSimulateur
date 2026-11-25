@@ -268,6 +268,7 @@ export function initChart(): Chart {
     for (const b of scene.legend) legend.append(legendBlock(b));
     if (scene.weather?.legend) legend.append(weatherLegend(scene.weather.legend));
     if (scene.weather?.note) legend.append(node('p', 'legend-note weather-missing', scene.weather.note));
+    if (scene.weather?.glyphNote) legend.append(node('p', 'legend-note', scene.weather.glyphNote));
     if (scene.empty) {
       wrap.append(node('p', 'hint', scene.empty));
       return;

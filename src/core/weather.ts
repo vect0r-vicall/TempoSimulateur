@@ -5,13 +5,22 @@
 import { isValidIso } from './period';
 import { dayNum } from './days';
 
-export interface DailyTemp { date: string; mean: number | null; min: number | null; max: number | null }
+/** One civil day of weather. `code` (WMO), `windKmh` (daily mean speed) and `windDeg` (dominant direction, the wind ORIGIN, [0,360))
+ *  are optional: absent means the same as null (not provided). */
+export interface DailyTemp {
+  date: string; mean: number | null; min: number | null; max: number | null;
+  code?: number | null; windKmh?: number | null; windDeg?: number | null;
+}
 export interface Place { label: string; latitude: number; longitude: number }
+export interface WindAggregate { speed: number | null; deg: number | null; covered: number; total: number }
 export interface TempAggregate { mean: number | null; min: number | null; max: number | null; covered: number; total: number }
 
 export const TEMP_MIN = -90;
 export const TEMP_MAX = 60;
+export const WIND_MAX = 300;
 export const MAX_PLACES = 5;
+/** WMO weather codes accepted from the provider (anything else is treated as missing). */
+export const WMO_CODES: readonly number[] = [0, 1, 2, 3, 45, 48, 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99];
 /** Hard ceiling on the days of one archive response (imports span at most 25 years). */
 export const HARD_MAX_DAYS = 25 * 366 + 1;
 const MAX_LABEL = 80;
@@ -36,6 +45,22 @@ function tempOrNull(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) && v >= TEMP_MIN && v <= TEMP_MAX ? v : null;
 }
 
+function codeOrNull(v: unknown): number | null {
+  return typeof v === 'number' && Number.isInteger(v) && WMO_CODES.includes(v) ? v : null;
+}
+function windOrNull(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= WIND_MAX ? v : null;
+}
+/** Direction in degrees normalised to [0,360) (360 -> 0); null when not finite or outside 0..360. */
+function dirOrNull(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 360 ? v % 360 : null;
+}
+
+/** True when the day carries at least one valid value (temperature, weather code or wind). */
+export function dayHasData(d: DailyTemp): boolean {
+  return d.mean !== null || d.min !== null || d.max !== null || (d.code ?? null) !== null || (d.windKmh ?? null) !== null || (d.windDeg ?? null) !== null;
+}
+
 /** Strict validation of an archive response for the requested inclusive civil-date window. */
 export function parseWeatherResponse(json: unknown, startDate: string, endDate: string): ParsedWeather {
   const bad = (reason: string): ParsedWeather => ({ ok: false, reason });
@@ -44,9 +69,13 @@ export function parseWeatherResponse(json: unknown, startDate: string, endDate: 
   const d = json['daily'];
   const time = d['time'], mean = d['temperature_2m_mean'], min = d['temperature_2m_min'], max = d['temperature_2m_max'];
   if (!Array.isArray(time) || !Array.isArray(mean) || !Array.isArray(min) || !Array.isArray(max)) return bad('arrays');
+  const opt = (k: string): unknown[] | null | 'bad' => (d[k] === undefined ? null : Array.isArray(d[k]) ? (d[k] as unknown[]) : 'bad'); // provider may omit an optional variable
+  const code = opt('weather_code'), wind = opt('wind_speed_10m_mean'), dir = opt('wind_direction_10m_dominant');
+  if (code === 'bad' || wind === 'bad' || dir === 'bad') return bad('arrays');
   const expected = dayNum(endDate) - dayNum(startDate) + 1; // inclusive civil-date span of the requested window
   if (time.length > expected || time.length > HARD_MAX_DAYS) return bad('too many days');
   if (mean.length !== time.length || min.length !== time.length || max.length !== time.length) return bad('length mismatch');
+  for (const a of [code, wind, dir]) if (a !== null && a.length !== time.length) return bad('length mismatch');
   const days: DailyTemp[] = [];
   const seen = new Set<string>();
   let missing = 0;
@@ -55,8 +84,11 @@ export function parseWeatherResponse(json: unknown, startDate: string, endDate: 
     if (typeof t !== 'string' || !isValidIso(t)) return bad('date');
     if (t < startDate || t > endDate || seen.has(t)) return bad('date window');
     seen.add(t);
-    const day = { date: t, mean: tempOrNull(mean[i]), min: tempOrNull(min[i]), max: tempOrNull(max[i]) };
-    if (day.mean === null && day.min === null && day.max === null) missing++;
+    const day: DailyTemp = {
+      date: t, mean: tempOrNull(mean[i]), min: tempOrNull(min[i]), max: tempOrNull(max[i]),
+      code: code ? codeOrNull(code[i]) : null, windKmh: wind ? windOrNull(wind[i]) : null, windDeg: dir ? dirOrNull(dir[i]) : null,
+    };
+    if (!dayHasData(day)) missing++;
     days.push(day);
   }
   days.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
@@ -135,3 +167,70 @@ export function tempTooltipLine(a: TempAggregate): string {
   const partial = a.covered < a.total ? ` (${a.covered}/${a.total} jours)` : '';
   return `Température : ${parts.join(' · ')}${partial}`;
 }
+
+/** Aggregates wind over a bucket: mean of daily mean speeds; direction = speed-weighted circular (vector) mean of the
+ *  days with both speed and direction (null when no weight or the resultant is ~0, e.g. opposite winds). covered = days with a speed. */
+export function aggregateWind(days: DailyTemp[] | Map<string, DailyTemp>, bucketDates: string[]): WindAggregate {
+  const byDate = days instanceof Map ? days : new Map(days.map((d) => [d.date, d]));
+  let sum = 0, n = 0, wSum = 0, x = 0, y = 0;
+  for (const date of bucketDates) {
+    const d = byDate.get(date);
+    const v = d?.windKmh ?? null, a = d?.windDeg ?? null;
+    if (v === null) continue;
+    sum += v; n++;
+    if (a !== null) {
+      const r = (a * Math.PI) / 180;
+      x += v * Math.sin(r); y += v * Math.cos(r); wSum += v;
+    }
+  }
+  let deg: number | null = null;
+  if (wSum > 0 && Math.hypot(x, y) / wSum > 1e-6) {
+    deg = (Math.atan2(x, y) * 180) / Math.PI;
+    if (deg < 0) deg += 360;
+    deg = Math.round(deg * 1e6) / 1e6 % 360;
+  }
+  return { speed: n > 0 ? sum / n : null, deg, covered: n, total: bucketDates.length };
+}
+
+const LABELS: Array<[number[], string]> = [
+  [[0], 'Ciel dégagé'], [[1], 'Peu nuageux'], [[2], 'Nuageux'], [[3], 'Couvert'], [[45, 48], 'Brouillard'],
+  [[51, 53, 55], 'Bruine'], [[56, 57], 'Bruine verglaçante'], [[61, 63, 65], 'Pluie'], [[66, 67], 'Pluie verglaçante'],
+  [[71, 73, 75, 77], 'Neige'], [[80, 81, 82], 'Averses'], [[85, 86], 'Averses de neige'], [[95], 'Orage'], [[96, 99], 'Orage avec grêle'],
+];
+const GLYPHS: Array<[number[], string]> = [ // BMP symbols only (widely available fonts); decorative, the label is always in the tooltip
+  [[0], '\u2600'], [[1, 2], '\u26C5'], [[3], '\u2601'], [[45, 48], '\u224B'], [[51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82], '\u2602'],
+  [[71, 73, 75, 77, 85, 86], '\u2744'], [[95, 96, 99], '\u26C8'],
+];
+const find = (t: Array<[number[], string]>, code: number | null | undefined): string => {
+  if (code === null || code === undefined) return '';
+  for (const [cs, v] of t) if (cs.includes(code)) return v;
+  return '';
+};
+/** French label of a WMO code ('' when null/unknown). */
+export const weatherLabel = (code: number | null | undefined): string => find(LABELS, code);
+/** One decorative plain-text glyph for a WMO code ('' when null/unknown). */
+export const weatherGlyph = (code: number | null | undefined): string => find(GLYPHS, code);
+
+const COMPASS = ['nord', 'nord-nord-est', 'nord-est', 'est-nord-est', 'est', 'est-sud-est', 'sud-est', 'sud-sud-est',
+  'sud', 'sud-sud-ouest', 'sud-ouest', 'ouest-sud-ouest', 'ouest', 'ouest-nord-ouest', 'nord-ouest', 'nord-nord-ouest'];
+/** 16-point compass name of a direction in degrees (the wind origin), e.g. 225 -> 'sud-ouest'; '' when not finite. */
+export function compassFr(deg: number): string {
+  if (!Number.isFinite(deg)) return '';
+  const n = ((deg % 360) + 360) % 360;
+  return COMPASS[Math.floor((n + 11.25) / 22.5) % 16]!;
+}
+/** 'sud-ouest' -> 'du sud-ouest'; 'ouest' -> "de l'ouest"; 'est-nord-est' -> "de l'est-nord-est". */
+export const windFrom = (name: string): string => (name.startsWith('est') || name.startsWith('ouest') ? `de l'${name}` : `du ${name}`);
+
+/** "Vent : moy. 11 km/h · du sud-ouest" (+ " (N/M jours)" when partial); direction omitted when unknown or when the speed rounds to 0. */
+export function formatWind(speed: number | null, deg: number | null, covered = 1, total = 1): string {
+  if (speed === null) return 'Vent : donnée indisponible';
+  const kmh = Math.round(speed);
+  const parts = [`moy. ${kmh}\u00A0km/h`];
+  if (deg !== null && kmh > 0) parts.push(windFrom(compassFr(deg)));
+  return `Vent : ${parts.join(' · ')}${covered < total ? ` (${covered}/${total} jours)` : ''}`;
+}
+/** Tooltip line of a bucket. */
+export const windTooltipLine = (a: WindAggregate): string => formatWind(a.speed, a.deg, a.covered, a.total);
+/** Day-view tooltip line "Météo : Pluie" ('Météo : donnée indisponible' without a code). */
+export const weatherTooltipLine = (code: number | null | undefined): string => `Météo : ${weatherLabel(code) || 'donnée indisponible'}`;

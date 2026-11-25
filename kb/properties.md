@@ -6,7 +6,7 @@
 - P5 Money in integer cents/micro-euros; no float drift in totals.
 - P6 No personal data in git (*.csv ignored).
 - P7 Grid data (src/data/grids.ts, generated): integer micro-units only; null means 'not printed in that grid', never 0; the generated grids equal the nine EDF PDFs (independent PDF-backed re-parse when the PDFs are present, exact SHA-256/literal pins in scripts/check-data-prices.mjs otherwise); no path or identifier of the owner's data folder appears anywhere in the repo.
-- P8 Weather data is untrusted: strict validation (same-length arrays, finite values in -90..60 C else missing, dates inside the requested window, at most 5 places, truncated text, 1 MB cap, 10 s timeout), rendered via textContent only; nulls near today are missing days, never zero.
+- P8 Weather data is untrusted: strict validation (same-length arrays, finite values in -90..60 C else missing, WMO code from the known set, wind speed 0..300 km/h, direction 0..360, dates inside the requested window, at most 5 places, truncated text, 1 MB cap, 10 s timeout), rendered via textContent only; nulls near today are missing days, never zero.
 - Zero runtime dependencies, no CDN.
 ## Test policy
 Pragmatic and light: parser, pricing engine, aggregation only. Test debt is noted in the friction log, never blocking.

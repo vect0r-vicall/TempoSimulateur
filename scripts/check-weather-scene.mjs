@@ -32,12 +32,12 @@ ok(none.groups.every((g) => g.tip.length === 5 && !g.aria.includes('Température
 // with weather
 const sc = buildScene(offers, ALL, period, 'month', SIZE, seasonal);
 ok(sc.plot.w < none.plot.w, 'weather: right margin added (plot narrower)');
-ok(sc.groups.every((g) => g.tip.length === none.groups[0].tip.length + 1 && /^Température : moy\./.test(g.tip[g.tip.length - 1])), 'weather: one extra tooltip line per group');
+ok(sc.groups.every((g) => g.tip.length === none.groups[0].tip.length + 2 && /^Température : moy\./.test(g.tip[g.tip.length - 2]) && /^Vent : /.test(g.tip.at(-1))), 'weather: two extra tooltip lines per group (temperature, wind)');
 ok(sc.groups.every((g) => g.tip.length <= 9), 'weather: tooltip fits MAX_TIP_LINES');
 const hv = buildScene(offers, ALL, period, 'month', SIZE, holes);
-ok(hv.groups[0].tip.at(-1).endsWith('(14/17 jours)') && !hv.groups[5].tip.at(-1).includes('jours)'), 'partial coverage shows (14/17 jours), full coverage shows no suffix');
+ok(hv.groups[0].tip.at(-2).endsWith('(14/17 jours)') && !hv.groups[5].tip.at(-2).includes('jours)'), 'partial coverage shows (14/17 jours), full coverage shows no suffix');
 ok(sc.groups.every((g) => g.aria.includes('Température')), 'weather: aria-label carries the temperature sentence');
-ok(!sc.groups[0].tip.at(-1).includes('jours)'), 'partial month (17 days in period) fully covered: no suffix, bucket limited to the period');
+ok(!sc.groups[0].tip.at(-2).includes('jours)'), 'partial month (17 days in period) fully covered: no suffix, bucket limited to the period');
 const w = sc.weather;
 ok(w && w.segments.length === 1 && w.segments[0].length === 13, 'trend: one segment of 13 points');
 ok(w.segments[0].every((p) => p.x >= sc.plot.x && p.x <= sc.plot.x + sc.plot.w && p.y >= sc.plot.y - 1e-6 && p.y <= sc.plot.y + sc.plot.h + 1e-6), 'trend points inside the plot');
@@ -51,12 +51,12 @@ ok(w.legend === 'Tendance de la température (moyenne)', 'legend label');
 // nulls: a gap in the middle splits the line, leading nulls are skipped
 const gap = buildScene(offers, ALL, period, 'month', SIZE, temps((i, d) => (d >= '2025-08-01' && d < '2025-10-01' ? null : 10 + (i % 7))));
 ok(gap.weather.segments.length === 2, `null months break the line into 2 segments (got ${gap.weather.segments.length})`);
-ok(gap.groups.some((g) => g.tip.at(-1) === 'Température : donnée indisponible'), 'fully missing bucket says donnée indisponible');
+ok(gap.groups.some((g) => g.tip.at(-2) === 'Température : donnée indisponible'), 'fully missing bucket says donnée indisponible');
 const allNull = buildScene(offers, ALL, period, 'month', SIZE, temps(() => null));
 // intentional expectation change (review): the former all-null assertion locked in a fake degC axis
 ok(allNull.weather.segments.length === 0 && allNull.weather.ticks.length === 0 && allNull.weather.legend === '' && allNull.weather.note === 'Météo non chargée pour cette vue', 'all-null: no trend, no degC axis, no legend entry, a note instead');
 const empty = buildScene(offers, ALL, period, 'month', SIZE, []);
-ok(empty.weather.segments.length === 0 && empty.groups.every((g) => g.tip.at(-1) === 'Température : donnée indisponible'), 'empty weather array handled');
+ok(empty.weather.segments.length === 0 && empty.groups.every((g) => g.tip.at(-2) === 'Température : donnée indisponible'), 'empty weather array handled');
 
 // single bucket (year view, one-year period inside 2025) and all-equal temperatures
 const one = days.slice(0, 100);
@@ -70,7 +70,7 @@ ok(Number.isFinite(flat.weather.segments[0][0].y), 'all-equal: finite trend y');
 // day view: single day buckets, temperature line is for that day
 const dv = buildScene(offers, ALL, { from: '2025-04-01', to: '2025-04-30' }, 'day', SIZE, seasonal);
 eq(dv.groups.length, 30, 'day view 30 groups');
-ok(dv.groups.every((g) => /^Température : moy\. [−\d,]+\s°C · min [−\d,]+ · max [−\d,]+$/.test(g.tip.at(-1))), 'day view tooltip has a full-coverage temperature line');
+ok(dv.groups.every((g) => /^Température : moy\. [−\d,]+\s°C · min [−\d,]+ · max [−\d,]+$/.test(g.tip.at(-2))), 'day view tooltip has a full-coverage temperature line');
 
 // ticks helper
 for (const [lo, hi] of [[-5.5, 28.2], [0, 0], [3, 3.2], [-40, -10], [10, 1000]]) {

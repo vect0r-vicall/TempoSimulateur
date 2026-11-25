@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Victor Allombert
 /** Opt-in weather fieldset (block 2). No request is made until the box is ticked AND a search/choice is made by the user. */
-import { DailyTemp, Place } from '../core/weather';
+import { DailyTemp, Place, dayHasData } from '../core/weather';
 import { fetchDailyTemps, searchPlaces } from '../net/weather';
 import { Period } from '../core/period';
 import { node } from './dom';
@@ -81,7 +81,7 @@ export function createWeather(root: HTMLElement, h: WeatherHandlers): WeatherPan
       return;
     }
     h.onData(r.days);
-    const n = r.days.filter((d) => d.mean !== null || d.min !== null || d.max !== null).length;
+    const n = r.days.filter(dayHasData).length;
     say(r.missing > 0 || n < r.days.length
       ? `${n} jours de météo chargés (données manquantes pour les autres jours)`
       : `${n} jours de météo chargés`);
