@@ -64,7 +64,7 @@ export function createControls(h: ControlsHandlers): Controls {
   const msg = node('p', 'period-msg');
   msg.setAttribute('role', 'status');
   msg.setAttribute('aria-live', 'polite');
-  const periodSet = node('fieldset', 'group');
+  const periodSet = node('fieldset', 'group group-period');
   periodSet.append(node('legend', undefined, 'Période'), shortcuts, dates, msg);
 
   const kvaWrap = node('div', 'field');
@@ -79,11 +79,11 @@ export function createControls(h: ControlsHandlers): Controls {
   }
   const kvaNote = node('span', 'kva-note');
   kvaWrap.append(kvaLab, kva, kvaNote);
-  const kvaSet = node('fieldset', 'group');
+  const kvaSet = node('fieldset', 'group group-kva');
   kvaSet.append(node('legend', undefined, 'Abonnement'), kvaWrap);
 
   const boxes = new Map<OfferId, HTMLInputElement>();
-  const offersSet = node('fieldset', 'group');
+  const offersSet = node('fieldset', 'group group-offers');
   offersSet.append(node('legend', undefined, 'Offres comparées'));
   for (const o of OFFER_IDS) {
     const lab = node('label', 'check');

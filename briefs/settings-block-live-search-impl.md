@@ -1,0 +1,5 @@
+# Implementation Brief — settings-block-live-search
+**Mode:** fast  **Status:** COMPLETED
+Block 2 renamed "Paramètres" and compacted (1280px idle 866→323 px, 390px 1179→717 px; results list overlays instead of adding height). Place search is live: pure state machine src/core/livesearch.ts (400 ms debounce, >=2 chars, Enter immediate, one in flight with AbortController + token, >=400 ms spacing, identical query not refired), places cache and AbortSignal support in src/net/weather.ts, button removed, keyboard list. Spec/KB/README/in-page privacy note amended FIRST (typed text now sent while typing after the pause): P1/P2/P8, R7/R8, FR-051..054, AC-43..47, CHECK-15 (check-weather-live.mjs). Numbering dropped from both block titles (revertable one-liner).
+Gates (lead re-run): build, npm test, TEMPO_DEMO_DATA=1 npm test, lint exit 0; mocked-network smokes fails 0. PDF-backed run skipped (no TEMPO_PDF_DIR). Skipped: real-network test, axe/Lighthouse.
+Review focus: privacy of live queries, races, rate, keyboard/a11y, layout regressions, vacuous checks.

@@ -1,0 +1,108 @@
+{
+ "task": "settings-block-live-search",
+ "date": "2026-11-25",
+ "status": "GO",
+ "mode": "fast",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "assurance": "degraded: review bundle not installed; one fresh reviewer ran gates, 300-seed fuzz of the pure machine, 14 mutants, Chromium layout at 7 widths",
+ "auto_fixes_applied": 0,
+ "findings": [
+  {
+   "severity": "MEDIUM",
+   "path": "src/ui/weather.ts",
+   "summary": "choose() did not reset live search; Enter after choose sent the label",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "controller resets; CHECK-16"
+  },
+  {
+   "severity": "MEDIUM",
+   "path": "src/ui/weather.ts",
+   "summary": "focus lost after keyboard choose",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "refocus field; CHECK-16"
+  },
+  {
+   "severity": "MEDIUM",
+   "path": "scripts/check-weather-live.mjs",
+   "summary": "UI-level guarantees only regex-checked; 6 mutants survived",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "pure controller + fake-DOM CHECK-16; 15 mutants killed"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/core/livesearch.ts",
+   "summary": "same query not searchable after choose/Escape; stale status after Escape",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": ""
+  },
+  {
+   "severity": "LOW",
+   "path": "src/ui/weather.ts",
+   "summary": "IME composition text sent mid-composition",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": ""
+  },
+  {
+   "severity": "LOW",
+   "path": "src/ui/weather.ts",
+   "summary": "privacy note omitted that Enter sends immediately",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": "note, README, R7, FR-051 updated"
+  },
+  {
+   "severity": "nit",
+   "path": "src/app.css",
+   "summary": "chips under 24px; disabled field border faint in dark",
+   "specialist": "reviewer",
+   "status": "RESOLVED",
+   "first_seen_round": 1,
+   "resolved_round": 1,
+   "note": ""
+  },
+  {
+   "severity": "LOW",
+   "path": "src/ui/weather.ts",
+   "summary": "no combobox ARIA pattern",
+   "specialist": "reviewer",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "status line announces results; acceptable"
+  },
+  {
+   "severity": "LOW",
+   "path": "src/app.css",
+   "summary": "dropdown overlays the cost card",
+   "specialist": "reviewer",
+   "status": "DEFERRED",
+   "first_seen_round": 1,
+   "resolved_round": null,
+   "note": "expected dropdown behaviour"
+  }
+ ],
+ "skipped": [
+  "PDF-backed npm test: TEMPO_PDF_DIR unavailable",
+  "review bundle scripts: not installed",
+  "real IME editor test: composition simulated"
+ ]
+}

@@ -13,7 +13,8 @@ export const MIN_QUERY = 2;
 export const MAX_QUERY = 60;
 
 export type FetchFn = (url: string, init: RequestInit) => Promise<Response>;
-export type PlacesResult = { ok: true; places: Place[] } | { ok: false; message: string };
+/** `aborted` marks a cancelled search (superseded or unticked): not an error, the UI ignores it. */
+export type PlacesResult = { ok: true; places: Place[] } | { ok: false; message: string; aborted?: true };
 export type TempsResult = { ok: true; days: DailyTemp[]; missing: number } | { ok: false; message: string };
 
 const defaultFetch: FetchFn = (url, init) => fetch(url, init);
@@ -22,6 +23,7 @@ const MSG = {
   query: 'Saisissez entre 2 et 60 caractères pour rechercher un lieu.',
   range: 'Période ou position invalide pour la météo.',
   net: 'Service météo injoignable. Vérifiez votre connexion et réessayez.',
+  aborted: 'Recherche annulée.',
   timeout: 'Le service météo ne répond pas (délai dépassé). Réessayez plus tard.',
   http: 'Le service météo a refusé la requête.',
   http400: 'Requête météo refusée (paramètres ou période non acceptés).',
@@ -36,11 +38,14 @@ export function sanitiseQuery(q: string): string | null {
   return s.length >= MIN_QUERY && s.length <= MAX_QUERY ? s : null;
 }
 
-type Raw = { ok: true; json: unknown } | { ok: false; message: string };
+type Raw = { ok: true; json: unknown } | { ok: false; message: string; aborted?: true };
 
-async function getJson(url: string, fetchFn: FetchFn): Promise<Raw> {
+async function getJson(url: string, fetchFn: FetchFn, external?: AbortSignal): Promise<Raw> {
+  if (external?.aborted) return { ok: false, message: MSG.aborted, aborted: true };
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+  const onExternal = () => ctl.abort();
+  external?.addEventListener('abort', onExternal);
   try {
     const res = await fetchFn(url, { method: 'GET', credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store', redirect: 'error', signal: ctl.signal });
     if (!res.ok) return { ok: false, message: res.status === 400 ? MSG.http400 : MSG.http };
@@ -50,26 +55,35 @@ async function getJson(url: string, fetchFn: FetchFn): Promise<Raw> {
     if (text.length > MAX_BODY_CHARS) return { ok: false, message: MSG.big };
     try { return { ok: true, json: JSON.parse(text) as unknown }; } catch { return { ok: false, message: MSG.bad }; }
   } catch {
+    if (external?.aborted) return { ok: false, message: MSG.aborted, aborted: true };
     return { ok: false, message: ctl.signal.aborted ? MSG.timeout : MSG.net };
   } finally {
     clearTimeout(timer);
+    external?.removeEventListener('abort', onExternal);
   }
 }
 
-export async function searchPlaces(query: string, fetchFn: FetchFn = defaultFetch): Promise<PlacesResult> {
+const placesCache = new Map<string, Place[]>();
+
+/** `signal` (optional) cancels the request: the result is then `{ok:false, aborted:true}`. Successful results are cached per lowercase query. */
+export async function searchPlaces(query: string, fetchFn: FetchFn = defaultFetch, signal?: AbortSignal): Promise<PlacesResult> {
   const q = sanitiseQuery(query);
   if (q === null) return { ok: false, message: MSG.query };
+  const hit = placesCache.get(q.toLowerCase());
+  if (hit) return { ok: true, places: hit };
   const url = `${GEOCODING_ORIGIN}/v1/search?name=${encodeURIComponent(q)}&count=5&language=fr&format=json`;
-  const raw = await getJson(url, fetchFn);
+  const raw = await getJson(url, fetchFn, signal);
   if (!raw.ok) return raw;
   const p = parseGeocodingResponse(raw.json);
-  return p.ok ? { ok: true, places: p.places } : { ok: false, message: MSG.bad };
+  if (!p.ok) return { ok: false, message: MSG.bad };
+  placesCache.set(q.toLowerCase(), p.places);
+  return { ok: true, places: p.places };
 }
 
 const cache = new Map<string, TempsResult & { ok: true }>();
 
-/** Clears the in-memory cache (tests). */
-export function clearWeatherCache(): void { cache.clear(); }
+/** Clears the in-memory caches (temperatures and places; tests). */
+export function clearWeatherCache(): void { cache.clear(); placesCache.clear(); }
 
 export async function fetchDailyTemps(lat: number, lon: number, start: string, end: string, fetchFn: FetchFn = defaultFetch): Promise<TempsResult> {
   if (typeof lat !== 'number' || typeof lon !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180

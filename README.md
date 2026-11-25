@@ -7,9 +7,9 @@ le coût de votre consommation est calculé pour chaque offre avec les grilles t
 
 Sous le titre de la vue, la carte du graphique affiche le **total de chaque offre pour la plage réellement affichée** (période sélectionnée, année ou mois détaillé), avec l'offre la moins chère.
 
-En option, une **superposition météo** (désactivée par défaut) ajoute au graphique les courbes de température du lieu choisi (moyenne en vert, minimale en bleu, maximale en rouge), via Open-Meteo (voir Confidentialité), ainsi que, dans les infobulles, le vent (vitesse moyenne et direction, sans rafales) et, dans la vue par jour, le temps du jour (ciel dégagé, nuageux, pluie…) avec une petite icône dessinée au-dessus de chaque jour ; les valeurs des infobulles sont colorées comme les courbes. Elle suit la période appliquée ; la réponse du service est limitée (1 Mo, au plus autant de jours que la période, 25 ans maximum) et la météo des dates trop récentes (environ 5 jours de décalage) peut manquer.
+En option, une **superposition météo** (désactivée par défaut) ajoute au graphique les courbes de température du lieu choisi (moyenne en vert, minimale en bleu, maximale en rouge), via Open-Meteo (voir Confidentialité), ainsi que, dans les infobulles, le vent (vitesse moyenne et direction, sans rafales) et, dans la vue par jour, le temps du jour (ciel dégagé, nuageux, pluie…) avec une petite icône dessinée au-dessus de chaque jour ; les valeurs des infobulles sont colorées comme les courbes. La recherche du lieu est instantanée : dès 2 caractères saisis, et après une courte pause (400 ms), les lieux correspondants s'affichent sous le champ (Entrée lance la recherche tout de suite, ↓ passe à la liste) ; il n'y a pas de bouton « Rechercher ». Elle suit la période appliquée ; la réponse du service est limitée (1 Mo, au plus autant de jours que la période, 25 ans maximum) et la météo des dates trop récentes (environ 5 jours de décalage) peut manquer.
 
-Dans le bloc Période, trois raccourcis (**Toute la période importée**, **Dernière année**, **2 dernières années**) fixent les dates en se terminant au dernier jour valorisé de vos données ; le bouton correspondant à la période appliquée est mis en évidence.
+Dans le bloc **Paramètres** (période, puissance, offres et météo sur quelques lignes compactes), le groupe Période propose trois raccourcis (**Toute la période importée**, **Dernière année**, **2 dernières années**) fixent les dates en se terminant au dernier jour valorisé de vos données ; le bouton correspondant à la période appliquée est mis en évidence.
 
 En bas de page, la carte **Tarifs appliqués** (repliée par défaut, un clic sur son titre la déplie) liste les prix EDF réellement utilisés (abonnement et prix du kWh par offre, pour chaque grille couvrant la période) avec leur source, la grille complète de toutes les puissances (repliée par défaut) et les taxes (accise/CSPE, TVA, CTA) et majorations (€ par an HT) imprimées dans chaque grille EDF depuis 2022.
 
@@ -20,10 +20,12 @@ le navigateur (ni cookie, ni stockage web), et la page ne fait aucune requête r
 propres fichiers statiques. Ni police externe, ni CDN, ni statistiques.
 
 **Seule exception, facultative** : la superposition de la météo (désactivée par défaut). Uniquement après que vous l'avez cochée
-et lancé une recherche de lieu, la page envoie des requêtes GET à deux services Open-Meteo
-(`geocoding-api.open-meteo.com` et `archive-api.open-meteo.com`) : votre adresse IP, la position approximative
-(arrondie à 0,1°, soit environ 11 km) et les dates demandées leur sont alors visibles. Aucun fichier ni consommation n'est
-envoyé, sans cookie ni référent, et rien n'est stocké (cache en mémoire uniquement). Données météo Open-Meteo.com, licence CC BY 4.0
+et saisi au moins 2 caractères dans le champ du lieu, la page envoie des requêtes GET à deux services Open-Meteo
+(`geocoding-api.open-meteo.com` et `archive-api.open-meteo.com`). **Pendant que vous tapez dans ce champ, après une courte pause (400 ms) ou tout de suite si vous appuyez sur Entrée,
+le texte saisi (même partiel ou avec une faute de frappe) leur est envoyé** (une saisie en cours de composition, par exemple au clavier japonais ou chinois, n'est envoyée qu'une fois validée) ; une fois le lieu choisi, les dates demandées et une position
+approximative (arrondie à 0,1°, soit environ 11 km) le sont aussi. Leur service voit votre adresse IP. Rien n'est envoyé en cochant seulement la case, avec moins de
+2 caractères, ni case décochée. Aucun fichier ni consommation n'est
+envoyé, sans cookie ni référent, et rien n'est stocké (caches en mémoire uniquement). Données météo Open-Meteo.com, licence CC BY 4.0
 (usage gratuit non commercial). Le code réseau est isolé dans `src/net/weather.ts`.
 
 ## Construire

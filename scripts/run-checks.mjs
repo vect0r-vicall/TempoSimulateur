@@ -24,7 +24,7 @@ await build({
 });
 console.log(`bundled ${entries.length} entry points into .build-test/`);
 
-const ORDER = ['import', 'pricing', 'tariffs', 'chart', 'viewrecap', 'shortcuts', 'weather', 'weather-scene', 'weather-review', 'weather-details', 'weather-visuals', 'forbidden-apis', 'dist', 'data'];
+const ORDER = ['import', 'pricing', 'tariffs', 'chart', 'viewrecap', 'shortcuts', 'weather', 'weather-scene', 'weather-review', 'weather-details', 'weather-visuals', 'weather-live', 'weather-panel', 'forbidden-apis', 'dist', 'data'];
 const present = readdirSync('scripts').filter((f) => /^check-.*\.mjs$/.test(f)).map((f) => f.slice(6, -4));
 const names = [...ORDER.filter((n) => present.includes(n)), ...present.filter((n) => !ORDER.includes(n)).sort()];
 for (const n of ORDER) if (!present.includes(n)) console.log(`skip: scripts/check-${n}.mjs not present yet`);
