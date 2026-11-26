@@ -72,6 +72,14 @@ Servez le contenu de `dist/` tel quel (site statique, HTTPS recommandé).
     `Cross-Origin-Opener-Policy: same-origin`, `X-Frame-Options: DENY`, `Cache-Control: no-cache`,
     et ne servir que GET/HEAD sans listing de répertoire.
 
+### GitHub Pages (optionnel)
+
+`.github/workflows/pages.yml` construit le site, lance `npm test` puis publie `dist/` sur GitHub Pages à chaque push sur `main`
+(ou à la main via « Run workflow »). Prérequis : dépôt public (ou offre payante) et, une seule fois, *Settings → Pages → Source :
+GitHub Actions*. Pages ne permet pas de définir d'en-têtes HTTP : seules les balises `<meta>` (CSP, referrer) s'appliquent, sans
+`frame-ancestors`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` ni `nosniff`. Le déploiement derrière nginx/Caddy avec les
+en-têtes ci-dessus reste la référence ; Pages est une copie de commodité.
+
 ## Hypothèses
 
 - Simulation indicative, sans valeur contractuelle ; heures creuses supposées de 22 h à 6 h.
