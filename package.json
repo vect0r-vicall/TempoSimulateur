@@ -4,6 +4,14 @@
   "private": true,
   "description": "Simulateur EDF Tempo / HC-HP / Base, 100% dans le navigateur",
   "license": "AGPL-3.0-or-later",
+  "homepage": "https://github.com/vect0r-vicall/TempoSimulateur#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vect0r-vicall/TempoSimulateur.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vect0r-vicall/TempoSimulateur/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=20"
