@@ -14,6 +14,7 @@ import { DailyTemp } from '../core/weather';
 import { View, viewBack, viewGranularity, viewRange, viewTitle, gotoModel, parseGotoValue, DrillView } from '../core/view';
 import { frDate } from '../core/format';
 import { viewRecap } from '../core/viewrecap';
+import { renderPodium, renderPodiumGain } from './podium';
 import { el, node } from './dom';
 import { renderSvg } from './svg';
 
@@ -141,11 +142,12 @@ export function initChart(): Chart {
   const vrTitle = node('h3', 'view-recap-title');
   vrTitle.id = 'view-recap-title';
   vr.setAttribute('aria-labelledby', 'view-recap-title');
+  const vrPodium = node('div', 'view-podium');
   const vrList = node('ul', 'view-offers');
   const vrDays = node('p', 'view-recap-days');
   const vrKwh = node('p', 'view-recap-days');
   const vrTemp = node('p', 'view-recap-days');
-  vr.append(vrTitle, vrList, vrDays, vrKwh, vrTemp);
+  vr.append(vrTitle, vrPodium, vrList, vrDays, vrKwh, vrTemp);
   const vrStatus = node('p', 'visually-hidden');
   vrStatus.setAttribute('role', 'status');
   vrStatus.setAttribute('aria-live', 'polite');
@@ -240,7 +242,9 @@ export function initChart(): Chart {
     const rec = viewRecap(view, a, inp.selected, inp.weather);
     vrTitle.textContent = rec.title;
     vrList.replaceChildren();
+    vrPodium.replaceChildren(...(rec.podium ? [renderPodium(rec.podium, true), renderPodiumGain(rec.podium)] : []));
     for (const r of rec.rows) {
+      if (rec.podium && r.available) continue; // ranked in the podium; only unavailable offers stay in the list
       const li = node('li', !r.available ? 'view-offer unavailable' : r.cheapest ? 'view-offer cheapest' : 'view-offer');
       li.append(node('span', 'view-offer-name', r.label), node('span', 'view-offer-total', r.totalText));
       if (r.cheapest) li.append(node('span', 'badge', 'Le moins cher'));

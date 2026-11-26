@@ -1,0 +1,22 @@
+{
+ "task": "podium-ranking",
+ "date": "2026-11-26",
+ "status": "GO",
+ "mode": "fast",
+ "assurance": "degraded",
+ "assurance_note": "roster review bundle not installed; independent reviewer subagent probed the ranking model with permutations, ties and 2M random totals, rendered 320/390/1200 px light and dark, and ran 27 mutations; no convergence gate",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "auto_fixes_applied": 0,
+ "findings": [
+  {"severity": "MEDIUM", "path": "src/app.css", "summary": "compact podium not shrunk on phones (desktop compact rules more specific than the media rules): totals and badge clipped at 320 px", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "LOW", "path": "src/app.css", "summary": "podium texts below 11 px on phones", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "LOW", "path": "scripts/check-podium.mjs", "summary": "mutations not caught: estimated-days flag, duplicated available offers in the list, aria-hidden on steps and emoji, :empty rule, badge text, compact narrow rules", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "INFO", "path": "src/core/recap.ts", "summary": "the 'environ' flag from estimated days is period-wide, not offer-specific (matches FR-068)", "specialist": "reviewer", "status": "DEFERRED", "first_seen_round": 1, "resolved_round": null}
+ ],
+ "cross_runtime_findings": [],
+ "summary": "No bug in the ranking model. Layout, text-size and test gaps fixed; probe shows no overflow at 320, 360, 390 and 1200 px.",
+ "no_go_reason": null,
+ "escalation_needed": false
+}

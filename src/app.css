@@ -150,6 +150,71 @@ input[type="date"]:focus-visible, select:focus-visible, .weather-field input:foc
 .period-msg.error { color: var(--err); background: var(--err-bg); padding: .4rem .6rem; border-radius: 8px; }
 .loaded { list-style: none; padding: 0; margin: .5rem 0 0; color: var(--muted); font-size: .9rem; }
 
+/* podium: 2nd left, 1st centre, 3rd right (DOM keeps the ranking order); every card stands on a step of its own height */
+.podium { list-style: none; margin: 0 0 .9rem; padding: 0; display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: .6rem; align-items: end; }
+.podium-2 { grid-template-columns: 1fr 1fr; }
+.pod { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; }
+.pod-pos-1 { order: 2; } .pod-pos-2 { order: 1; } .pod-pos-3 { order: 3; }
+.pod-card {
+  display: grid; justify-items: center; gap: .15rem; text-align: center; overflow-wrap: anywhere;
+  border: 1px solid var(--border); border-radius: 12px 12px 0 0; padding: .75rem .5rem; background: var(--card);
+}
+.pod-rank { font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.pod-name { font-weight: 600; font-size: .95rem; }
+.pod-total { font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pod-gap { font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pod-card .badge { grid-column: auto; justify-self: center; margin-top: .15rem; white-space: nowrap; }
+.pod-step {
+  display: grid; place-items: center; font-weight: 800; font-size: 1.6rem; color: var(--accent);
+  background: var(--accent-soft); border: 1px solid var(--border); border-top: 0; border-radius: 0 0 10px 10px;
+}
+.pod-r1 .pod-step { height: 4.4rem; }
+.pod-r2 .pod-step { height: 3.1rem; }
+.pod-r3 .pod-step { height: 2.1rem; }
+.pod-winner .pod-card { border-color: var(--ok); box-shadow: 0 0 0 2px var(--ok); padding-top: 1.1rem; padding-bottom: 1.1rem; }
+.pod-winner .pod-rank { color: var(--ok); }
+.pod-winner .pod-total { font-size: 1.5rem; }
+.pod-winner .pod-step { color: var(--card); background: var(--ok); border-color: var(--ok); }
+.podium-gain { margin: 0 0 1rem; padding: .65rem .9rem; border-radius: 12px; border: 1px solid var(--ok); background: var(--accent-soft); background: color-mix(in srgb, var(--ok) 12%, var(--card)); }
+.podium.compact { margin-bottom: .6rem; }
+.podium.compact .pod-card { padding: .5rem .4rem; }
+.podium.compact .pod-winner .pod-card { padding-top: .7rem; padding-bottom: .7rem; }
+.podium.compact .pod-name { font-size: .85rem; }
+.podium.compact .pod-total { font-size: 1.05rem; }
+.podium.compact .pod-winner .pod-total { font-size: 1.25rem; }
+.podium.compact .pod-step { font-size: 1.1rem; }
+.podium.compact .pod-r1 .pod-step { height: 2.6rem; }
+.podium.compact .pod-r2 .pod-step { height: 1.9rem; }
+.podium.compact .pod-r3 .pod-step { height: 1.3rem; }
+.podium-gain-icon { margin-right: .1rem; }
+.view-podium .podium-gain { margin-bottom: .6rem; padding: .45rem .7rem; font-size: .9rem; }
+.view-podium:empty, .view-offers:empty { display: none; }
+@media (max-width: 520px) {
+  .podium { gap: .35rem; }
+  .pod-card { padding: .5rem .15rem; }
+  .pod-name { font-size: .78rem; hyphens: auto; }
+  .pod-total { font-size: .86rem; }
+  .pod-winner .pod-total { font-size: .98rem; }
+  .pod-card .badge { font-size: .66rem; padding: .05rem .35rem; }
+  .pod-gap { font-size: .7rem; }
+  .pod-rank { font-size: .66rem; }
+  .pod-step { font-size: 1.2rem; }
+  .podium.compact .pod-card { padding: .4rem .1rem; }
+  .podium.compact .pod-name { font-size: .74rem; }
+  .podium.compact .pod-total { font-size: .8rem; }
+  .podium.compact .pod-winner .pod-total { font-size: .9rem; }
+  .podium.compact .pod-step { font-size: 1rem; }
+}
+@media (max-width: 360px) {
+  .podium { gap: .2rem; }
+  .pod-card .badge { white-space: normal; line-height: 1.15; }
+  .pod-total { font-size: .78rem; }
+  .pod-winner .pod-total { font-size: .88rem; }
+  .podium.compact .pod-total { font-size: .74rem; }
+  .podium.compact .pod-winner .pod-total { font-size: .82rem; }
+}
+}
+
 /* recap */
 .offers { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: .6rem; }
 .offer {

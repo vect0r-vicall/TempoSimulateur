@@ -8,6 +8,7 @@ import { OFFER_LABEL } from './pricing';
 import { formatEuro } from './format';
 import { Consumption, consumptionText } from './kwh';
 import { View, monthLabel } from './view';
+import { Podium } from './podium';
 import { DailyTemp, Seg, aggregateTemps, segsText, tempTooltipSegments } from './weather';
 import { dayNum, isoOf } from './days';
 
@@ -29,6 +30,7 @@ export interface ViewRecap {
   excludedDays: number;
   kwh: Consumption;
   kwhText: string; // 'Consommation : 4 321 kWh (HC 40 % / HP 60 %)'
+  podium: Podium | null; // ranking of the available offers of the viewed range (null below two offers)
   daysText: string; // 'N jours valorisés' (+ estimated / excluded only when non-zero)
   tempText: string; // 'Température : moy. 12,3 °C · min −4,1 · max 31,0' over the viewed days ('' when the weather overlay is off)
   tempSegs: Seg[]; // the same line as coloured segments (tt-mean / tt-min / tt-max like the tooltip); [] when the overlay is off
@@ -86,9 +88,10 @@ export function viewRecap(view: View, a: Analysis, selected: OfferId[], weather?
     excludedDays: r.excludedDays,
     kwh: r.kwh,
     kwhText,
+    podium: r.podium,
     daysText,
     tempText,
     tempSegs,
-    summary: rows.length ? `${title} : ${body}. ${daysText}. ${kwhText}.${tempText ? ` ${tempText}.` : ''}` : `${title} : aucune offre sélectionnée.`,
+    summary: rows.length ? `${title} : ${body}. ${r.podium ? `${r.podium.sentence} ` : ''}${daysText}. ${kwhText}.${tempText ? ` ${tempText}.` : ''}` : `${title} : aucune offre sélectionnée.`,
   };
 }

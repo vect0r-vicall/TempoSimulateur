@@ -36,7 +36,7 @@
 
 ## Ce que vous obtenez
 
-- 💶 **Le coût exact par offre** sur la période de votre choix (dernière année, deux dernières années, tout l'historique ou des dates libres).
+- 🏆 **Un podium des offres** sur la période de votre choix (dernière année, deux dernières années, tout l'historique ou des dates libres) : le coût de chacune, l'écart en euros avec la moins chère et la phrase qui dit combien vous économisez.
 - 📊 **Un graphique interactif** par année, mois ou jour, avec le détail par couleur de jour Tempo et par heures creuses / pleines.
 - 🔌 **Votre consommation en kWh** et la part heures creuses / heures pleines, au survol de chaque barre.
 - 🌤️ **La météo en option** (désactivée par défaut) : températures, vent et précipitations du lieu choisi, pour relier la consommation au climat.

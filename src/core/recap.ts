@@ -5,6 +5,7 @@ import { DayConsumption, ImportResult } from './types';
 import { OFFER_IDS, OfferId, OfferResult, Offers, priceOffers } from './pricing';
 import { Period } from './period';
 import { Consumption, sumConsumption } from './kwh';
+import { Podium, buildPodium } from './podium';
 
 export interface Analysis {
   period: Period;
@@ -49,6 +50,7 @@ export interface Recap {
   excludedDays: number;
   kwh: Consumption;
   calendarEstimate: boolean; // a selected available Tempo offer priced days with the calendar colour
+  podium: Podium | null; // ranking of the available offers (null below two); the savings sentence is approximate when days are estimated
 }
 
 export function buildRecap(a: Analysis, selected: OfferId[]): Recap {
@@ -64,6 +66,7 @@ export function buildRecap(a: Analysis, selected: OfferId[]): Recap {
     cheapest: r.available && r.totalMicro === min,
     calendarEstimateDays: r.calendarEstimateDays,
   }));
+  const calendarEstimate = results.some((r) => r.offer === 'tempo' && r.available && r.calendarEstimateDays > 0);
   return {
     rows,
     compared: avail.length,
@@ -71,6 +74,7 @@ export function buildRecap(a: Analysis, selected: OfferId[]): Recap {
     estimatedDays: a.estimatedDays,
     excludedDays: a.excludedDays.length,
     kwh: a.kwh,
-    calendarEstimate: results.some((r) => r.offer === 'tempo' && r.available && r.calendarEstimateDays > 0),
+    calendarEstimate,
+    podium: buildPodium(rows, calendarEstimate || a.estimatedDays > 0),
   };
 }
