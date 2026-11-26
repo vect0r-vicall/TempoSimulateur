@@ -80,6 +80,19 @@ GitHub Actions*. Pages ne permet pas de définir d'en-têtes HTTP : seules les b
 `frame-ancestors`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` ni `nosniff`. Le déploiement derrière nginx/Caddy avec les
 en-têtes ci-dessus reste la référence ; Pages est une copie de commodité.
 
+## Licence
+
+Le code est publié sous licence **GNU AGPL-3.0 ou ultérieure** (voir `LICENSE`), copyright © 2026 Victor Allombert <victor.allombert@proton.me>.
+Quiconque distribue ou héberge une version modifiée doit en publier le code source sous la même licence.
+Chaque fichier source (TypeScript, scripts, CSS, HTML, SVG, workflow, extrait nginx) porte un en-tête `SPDX-License-Identifier` et
+`SPDX-FileCopyrightText`, vérifié par `scripts/check-spdx.mjs` ; les fichiers de données, de configuration et de documentation (JSON, CSV,
+Markdown, `.gitignore`) n'en portent pas et sont couverts par cette section.
+
+La licence ne couvre que le code. Les données embarquées gardent les conditions de leurs sources : grilles tarifaires publiées
+par EDF ; calendrier Tempo issu de `api-couleur-tempo.fr` (relais des données RTE, sans licence déclarée), recoupé avec
+`calendrier-tempo.fr` (CC BY 4.0). Les données météo Open-Meteo, récupérées à l'exécution, sont sous CC BY 4.0. Ce projet n'est
+affilié ni à EDF, ni à RTE, ni à Open-Meteo.
+
 ## Hypothèses
 
 - Simulation indicative, sans valeur contractuelle ; heures creuses supposées de 22 h à 6 h.

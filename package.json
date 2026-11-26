@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Simulateur EDF Tempo / HC-HP / Base, 100% dans le navigateur",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "engines": {
     "node": ">=20"
