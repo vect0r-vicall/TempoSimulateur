@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Victor Allombert
-// CHECK-5 [AC-11]: meta CSP first in head, connect-src exactly the two Open-Meteo origins, exactly seven dist files, _headers content.
+// CHECK-5 [AC-11]: meta CSP first in head, connect-src exactly the two Open-Meteo origins, exactly eight dist files, _headers content.
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 
 import { CSP, HEADER_CSP, OTHER_HEADERS, NGINX_SNIPPET, CONNECT_ORIGINS } from './policy.mjs';
@@ -9,7 +9,7 @@ const ok = (c, m) => { if (!c) { bad++; console.error('FAIL: ' + m); } else cons
 
 if (!existsSync('dist')) { console.error('dist/ missing: run npm run build'); process.exit(2); }
 const files = readdirSync('dist').sort();
-ok(JSON.stringify(files) === JSON.stringify(['_headers', 'app.css', 'app.js', 'favicon.svg', 'index.html', 'robots.txt', 'sitemap.xml']), `dist has exactly the seven files (${files.join(', ')})`);
+ok(JSON.stringify(files) === JSON.stringify(['_headers', 'app.css', 'app.js', 'favicon.svg', 'index.html', 'og-image.png', 'robots.txt', 'sitemap.xml']), `dist has exactly the eight files (${files.join(', ')})`);
 
 const html = readFileSync('dist/index.html', 'utf8');
 const head = /<head[^>]*>([\s\S]*?)<\/head>/i.exec(html)?.[1] ?? '';
@@ -79,6 +79,10 @@ ok(jsCount === 1 && js.every((l) => /\bfetch\(\s*\w+\s*,\s*\w+\s*\)/.test(l)), `
 ok(/^\s*connect-src/.test('connect-src x') && connectOf("default-src 'none'; connect-src a").length === 1, 'self-test: connectOf parses');
 ok(/autoindex off;/.test(ng) && /\(GET\|HEAD\)/.test(ng) && /Permissions-Policy/.test(ng) && /Cross-Origin-Opener-Policy "same-origin"/.test(ng) && /X-Frame-Options "DENY"/.test(ng) && /Cache-Control "no-cache"/.test(ng), 'nginx: autoindex off, GET/HEAD only, extra headers');
 
+// The page title shows the same mark as the favicon, inline and decorative (no image request).
+const markInner = (svgText) => (/<svg[^>]*>([\s\S]*)<\/svg>/i.exec(svgText)?.[1] ?? '').replace(/\s+/g, '');
+const headerMark = /<h1>\s*(<svg\b[^>]*\bclass=["']logo["'][^>]*>[\s\S]*?<\/svg>)/i.exec(html)?.[1] ?? '';
+ok(/aria-hidden=["']true["']/.test(headerMark) && markInner(headerMark) === markInner(readFileSync('dist/favicon.svg', 'utf8').replace(/<!--[\s\S]*?-->/g, '')), 'page title mark is the favicon mark, inline and decorative (no drift)');
 // Discoverability: title, description, canonical, Open Graph, robots.txt and a one-URL sitemap, all consistent with the canonical URL.
 const CANONICAL = 'https://vect0r-vicall.github.io/TempoSimulateur/';
 const tag = (re) => re.exec(html)?.[1] ?? '';
@@ -89,6 +93,9 @@ ok(description.length >= 70 && description.length <= 160, `meta description is 7
 ok(tag(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']*)["']/i) === CANONICAL, 'canonical link is the public URL');
 ok(tag(/<meta[^>]*property=["']og:url["'][^>]*content=["']([^"']*)["']/i) === CANONICAL && tag(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']*)["']/i) === title && tag(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']*)["']/i) === description, 'Open Graph url, title and description match the page');
 ok(!(html.match(/<meta\b[^>]*>/gi) ?? []).some((m) => /name\s*=\s*["']?(robots|googlebot)/i.test(m) && /noindex/i.test(m)), 'the page is not marked noindex (any attribute order)');
+ok(tag(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']*)["']/i) === `${CANONICAL}og-image.png` && tag(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']*)["']/i) === `${CANONICAL}og-image.png` && tag(/<meta[^>]*name=["']twitter:card["'][^>]*content=["']([^"']*)["']/i) === 'summary_large_image', 'og:image and twitter:image point at the shipped og-image.png');
+const og = readFileSync('dist/og-image.png');
+ok(og.length > 5000 && og.length < 400000 && og.subarray(0, 8).toString('hex') === '89504e470d0a1a0a' && og.readUInt32BE(16) === 1200 && og.readUInt32BE(20) === 630, `og-image.png is a 1200x630 PNG under 400 KB (${og.length} bytes)`);
 const robots = readFileSync('dist/robots.txt', 'utf8');
 ok(/^User-agent: \*$/m.test(robots) && /^Allow: \/$/m.test(robots) && !/^Disallow:\s*\/\s*$/m.test(robots) && robots.includes(`Sitemap: ${CANONICAL}sitemap.xml`), 'robots.txt allows crawling and points at the sitemap');
 const sitemap = readFileSync('dist/sitemap.xml', 'utf8');

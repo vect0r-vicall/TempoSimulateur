@@ -28,6 +28,7 @@ await copyFile('src/app.css', 'dist/app.css');
 await copyFile('favicon.svg', 'dist/favicon.svg');
 await copyFile('src/robots.txt', 'dist/robots.txt');
 await copyFile('src/sitemap.xml', 'dist/sitemap.xml');
+await copyFile('src/og-image.png', 'dist/og-image.png');
 await writeFile('dist/_headers', HEADERS);
 await writeFile('nginx.conf.snippet', NGINX_SNIPPET);
-console.log('build ok: dist/{index.html,app.js,app.css,favicon.svg,robots.txt,sitemap.xml,_headers}');
+console.log('build ok: dist/{index.html,app.js,app.css,favicon.svg,og-image.png,robots.txt,sitemap.xml,_headers}');

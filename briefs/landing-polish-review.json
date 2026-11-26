@@ -1,0 +1,22 @@
+{
+ "task": "landing-polish",
+ "date": "2026-11-26",
+ "status": "GO",
+ "mode": "fast",
+ "assurance": "degraded",
+ "assurance_note": "roster review bundle not installed; independent reviewer subagent ran the checks, compared the old and new README line by line and viewed every asset; no convergence gate",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "auto_fixes_applied": 0,
+ "findings": [
+  {"severity": "MEDIUM", "path": "docs/try-it.svg", "summary": "outlined Inter Bold glyphs carried no font licence note", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "LOW", "path": "README.md", "summary": "'sans serveur' loose for a Pages-hosted site: now 'sans backend'", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "LOW", "path": "README.md", "summary": "README badges are images loaded through GitHub when the README is viewed, outside the app's privacy promise", "specialist": "reviewer", "status": "DEFERRED", "first_seen_round": 1, "resolved_round": null},
+  {"severity": "INFO", "path": "favicon.svg", "summary": "bolt and grid are not legible at 16 px, the silhouette is", "specialist": "reviewer", "status": "DEFERRED", "first_seen_round": 1, "resolved_round": null}
+ ],
+ "cross_runtime_findings": [],
+ "summary": "No blocking finding. README claims match code and specs, nothing lost from the old README, assets valid and free of personal data, og tags consistent, GitHub renderer features all allowed.",
+ "no_go_reason": null,
+ "escalation_needed": false
+}
