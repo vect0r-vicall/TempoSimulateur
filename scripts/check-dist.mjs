@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Victor Allombert
-// CHECK-5 [AC-11]: meta CSP first in head, connect-src exactly the two Open-Meteo origins, exactly five dist files, _headers content.
+// CHECK-5 [AC-11]: meta CSP first in head, connect-src exactly the two Open-Meteo origins, exactly seven dist files, _headers content.
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 
 import { CSP, HEADER_CSP, OTHER_HEADERS, NGINX_SNIPPET, CONNECT_ORIGINS } from './policy.mjs';
@@ -9,7 +9,7 @@ const ok = (c, m) => { if (!c) { bad++; console.error('FAIL: ' + m); } else cons
 
 if (!existsSync('dist')) { console.error('dist/ missing: run npm run build'); process.exit(2); }
 const files = readdirSync('dist').sort();
-ok(JSON.stringify(files) === JSON.stringify(['_headers', 'app.css', 'app.js', 'favicon.svg', 'index.html']), `dist has exactly the five files (${files.join(', ')})`);
+ok(JSON.stringify(files) === JSON.stringify(['_headers', 'app.css', 'app.js', 'favicon.svg', 'index.html', 'robots.txt', 'sitemap.xml']), `dist has exactly the seven files (${files.join(', ')})`);
 
 const html = readFileSync('dist/index.html', 'utf8');
 const head = /<head[^>]*>([\s\S]*?)<\/head>/i.exec(html)?.[1] ?? '';
@@ -31,7 +31,16 @@ for (const c of hostileCsp) ok(JSON.stringify(directives(c)) !== JSON.stringify(
 ok(/<meta[^>]*name=["']referrer["'][^>]*content=["']no-referrer["']/i.test(html), 'meta referrer no-referrer');
 ok(connectOf(content ?? '').length === 1 && directives(content ?? '').join('; ') === EXPECTED_DIRECTIVES.join('; ') && !/unsafe-inline|unsafe-eval/.test(html), 'meta CSP: single connect-src with the two origins, no unsafe-*');
 ok(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(html), 'no inline script');
-ok(!/<script[^>]*\bsrc=["']https?:/i.test(html) && !/(href|src)=["'](https?:)?\/\//i.test(html), 'no external resource');
+// The only external URL is the footer link to the source repository (a navigation on click, never a loaded resource).
+const REPO_URL = 'https://github.com/vect0r-vicall/TempoSimulateur';
+const SOURCE_LINK = /<a\b[^>]*\bclass=["']source-link["'][^>]*>/i.exec(html)?.[0] ?? '';
+const SOURCE_ELEMENT = /<a\b[^>]*\bclass=["']source-link["'][^>]*>[\s\S]*?<\/a>/i;
+const CANONICAL_LINK = /<link\b[^>]*\brel=["']canonical["'][^>]*>/i;
+// the page with its two sanctioned external URLs removed: everything else is checked against the strict rules
+const withoutSourceLink = html.replace(SOURCE_ELEMENT, '').replace(CANONICAL_LINK, '');
+ok(!/<script[^>]*\bsrc=["']https?:/i.test(html) && !/(href|src)\s*=\s*["']?(https?:)?\/\//i.test(withoutSourceLink), 'no external resource (only the footer source link and the canonical link carry an external URL)');
+ok(SOURCE_LINK.includes(`href="${REPO_URL}"`) && /target=["']_blank["']/.test(SOURCE_LINK) && /rel=["']noopener noreferrer["']/.test(SOURCE_LINK) && /aria-label=["'][^"']+["']/.test(SOURCE_LINK) && (html.match(/<a\b/gi) ?? []).length === 1, 'footer source link: exact repository URL, new tab, rel noopener noreferrer, accessible name, the only anchor');
+ok(/<svg[^>]*aria-hidden=["']true["'][^>]*>\s*<path[^>]*fill=["']currentColor["']/i.test(html.slice(html.indexOf(SOURCE_LINK))) && !/<img\b|<iframe\b|<object\b|<embed\b/i.test(html), 'footer icon is an inline decorative SVG (no image, no frame)');
 ok(!/<style[\s>]/i.test(html) && !/\sstyle\s*=/i.test(html), 'no inline style');
 ok(!/\son\w+\s*=/i.test(html), 'no inline event handler');
 ok(/<link[^>]*rel=["']icon["'][^>]*href=["']favicon\.svg["']/i.test(html), 'favicon link');
@@ -48,7 +57,7 @@ const HTML_BAD = [
   [/<link[^>]*rel=["']?(prefetch|preload|preconnect|dns-prefetch)/i, '<link rel=preload href=x>'],
 ];
 for (const [re, hostile] of HTML_BAD) ok(re.test(hostile), `self-test: ${re} fires on ${hostile}`);
-for (const [re] of HTML_BAD) ok(!re.test(html), `dist/index.html does not match ${re}`);
+for (const [re] of HTML_BAD) ok(!re.test(withoutSourceLink), `dist/index.html does not match ${re} (outside the footer source link)`);
 
 const h = readFileSync('dist/_headers', 'utf8');
 const hCsp = /Content-Security-Policy: ([^\n]*)/.exec(h)?.[1] ?? '';
@@ -69,4 +78,20 @@ const jsCount = js.reduce((n, l) => n + (l.match(/\bfetch\b/g) ?? []).length, 0)
 ok(jsCount === 1 && js.every((l) => /\bfetch\(\s*\w+\s*,\s*\w+\s*\)/.test(l)), `dist/app.js: exactly one fetch occurrence, the allowlisted module call site (found ${jsCount})`);
 ok(/^\s*connect-src/.test('connect-src x') && connectOf("default-src 'none'; connect-src a").length === 1, 'self-test: connectOf parses');
 ok(/autoindex off;/.test(ng) && /\(GET\|HEAD\)/.test(ng) && /Permissions-Policy/.test(ng) && /Cross-Origin-Opener-Policy "same-origin"/.test(ng) && /X-Frame-Options "DENY"/.test(ng) && /Cache-Control "no-cache"/.test(ng), 'nginx: autoindex off, GET/HEAD only, extra headers');
+
+// Discoverability: title, description, canonical, Open Graph, robots.txt and a one-URL sitemap, all consistent with the canonical URL.
+const CANONICAL = 'https://vect0r-vicall.github.io/TempoSimulateur/';
+const tag = (re) => re.exec(html)?.[1] ?? '';
+const title = tag(/<title>([^<]*)<\/title>/i);
+const description = tag(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i);
+ok(title.length >= 20 && title.length <= 65 && title.includes('TempoSimulateur'), `title is 20..65 characters and names the app (${title.length})`);
+ok(description.length >= 70 && description.length <= 160, `meta description is 70..160 characters (${description.length})`);
+ok(tag(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']*)["']/i) === CANONICAL, 'canonical link is the public URL');
+ok(tag(/<meta[^>]*property=["']og:url["'][^>]*content=["']([^"']*)["']/i) === CANONICAL && tag(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']*)["']/i) === title && tag(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']*)["']/i) === description, 'Open Graph url, title and description match the page');
+ok(!(html.match(/<meta\b[^>]*>/gi) ?? []).some((m) => /name\s*=\s*["']?(robots|googlebot)/i.test(m) && /noindex/i.test(m)), 'the page is not marked noindex (any attribute order)');
+const robots = readFileSync('dist/robots.txt', 'utf8');
+ok(/^User-agent: \*$/m.test(robots) && /^Allow: \/$/m.test(robots) && !/^Disallow:\s*\/\s*$/m.test(robots) && robots.includes(`Sitemap: ${CANONICAL}sitemap.xml`), 'robots.txt allows crawling and points at the sitemap');
+const sitemap = readFileSync('dist/sitemap.xml', 'utf8');
+ok(sitemap.startsWith('<?xml') && sitemap.includes('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">') && sitemap.trim().endsWith('</urlset>') && (sitemap.match(/<loc>/g) ?? []).length === 1 && sitemap.includes(`<loc>${CANONICAL}</loc>`) && (sitemap.match(/<url>/g) ?? []).length === (sitemap.match(/<\/url>/g) ?? []).length, 'sitemap.xml is a well-formed one-URL sitemap of the canonical page');
+
 process.exit(bad ? 1 : 0);

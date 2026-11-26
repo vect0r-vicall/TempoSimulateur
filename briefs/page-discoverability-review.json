@@ -1,0 +1,22 @@
+{
+ "task": "page-discoverability",
+ "date": "2026-11-26",
+ "status": "GO",
+ "mode": "fast",
+ "assurance": "degraded",
+ "assurance_note": "roster review bundle not installed; independent reviewer subagent ran the checks and 20+ mutation tests of the relaxed dist check; no convergence gate",
+ "round": 1,
+ "cycle": 1,
+ "no_go_round": 0,
+ "auto_fixes_applied": 0,
+ "findings": [
+  {"severity": "LOW", "path": "scripts/check-dist.mjs", "summary": "noindex in reversed attribute order, a sitemap without </urlset> and unquoted external href were not caught", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "LOW", "path": "README.md", "summary": "stale dist file lists, SPDX exemption list and privacy wording did not mention the new files and the footer link", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "INFO", "path": "src/robots.txt", "summary": "ineffective on a github.io project path (crawlers read only the host root); documented in FR-065", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1},
+  {"severity": "INFO", "path": "src/index.html", "summary": "footer link replaced the app and discarded the loaded file: now opens in a new tab", "specialist": "reviewer", "status": "RESOLVED", "first_seen_round": 1, "resolved_round": 1}
+ ],
+ "cross_runtime_findings": [],
+ "summary": "No CRITICAL/HIGH. CSP, referrer, headers and generated nginx snippet unchanged; footer icon accessible (name, focus, 32px target, contrast above 5:1 in both themes); all mutations caught after the fixes.",
+ "no_go_reason": null,
+ "escalation_needed": false
+}

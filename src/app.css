@@ -104,7 +104,9 @@ code { background: var(--accent-soft); padding: .1em .35em; border-radius: 6px; 
   max-width: 60rem; margin: 1rem auto; padding: .8rem 1rem;
   background: var(--err-bg); color: var(--err); border-radius: 10px;
 }
-.site-footer { color: var(--muted); font-size: .85rem; padding-bottom: 2rem; }
+.site-footer { color: var(--muted); font-size: .85rem; padding-bottom: 2rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+.source-link { display: inline-flex; padding: .25rem; border-radius: 8px; color: var(--muted); line-height: 0; }
+.source-link:hover, .source-link:focus-visible { color: var(--text); }
 @media (max-width: 480px) {
   .card { padding: 1rem; border-radius: 12px; }
   .dropzone { padding: 1.25rem .75rem; }

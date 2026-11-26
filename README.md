@@ -19,7 +19,7 @@ En bas de page, la carte **Tarifs appliqués** (repliée par défaut, un clic su
 
 Par défaut, aucune donnée n'est envoyée, stockée ou mémorisée : le fichier est lu localement, rien n'est écrit dans
 le navigateur (ni cookie, ni stockage web), et la page ne fait aucune requête réseau en dehors de ses
-propres fichiers statiques. Ni police externe, ni CDN, ni statistiques.
+propres fichiers statiques (le seul lien externe, vers le dépôt du code dans le pied de page, ne s'ouvre que si vous cliquez). Ni police externe, ni CDN, ni statistiques.
 
 **Seule exception, facultative** : la superposition de la météo (désactivée par défaut). Uniquement après que vous l'avez cochée
 et saisi au moins 2 caractères dans le champ du lieu, la page envoie des requêtes GET à deux services Open-Meteo
@@ -36,7 +36,7 @@ Prérequis : Node >= 20.
 
 ```
 npm install
-npm run build   # produit dist/ : index.html, app.js, app.css, favicon.svg, _headers
+npm run build   # produit dist/ : index.html, app.js, app.css, favicon.svg, robots.txt, sitemap.xml, _headers
 npm test        # construit puis exécute les vérifications (données, calculs, graphique, API interdites, dist)
 npm run lint    # tsc --noEmit
 ```
@@ -86,7 +86,7 @@ Le code est publié sous licence **GNU AGPL-3.0 ou ultérieure** (voir `LICENSE`
 Quiconque distribue ou héberge une version modifiée doit en publier le code source sous la même licence.
 Chaque fichier source (TypeScript, scripts, CSS, HTML, SVG, workflow, extrait nginx) porte un en-tête `SPDX-License-Identifier` et
 `SPDX-FileCopyrightText`, vérifié par `scripts/check-spdx.mjs` ; les fichiers de données, de configuration et de documentation (JSON, CSV,
-Markdown, `.gitignore`) n'en portent pas et sont couverts par cette section.
+Markdown, `.txt`, `.xml`, `.gitignore`) n'en portent pas et sont couverts par cette section.
 
 La licence ne couvre que le code. Les données embarquées gardent les conditions de leurs sources : grilles tarifaires publiées
 par EDF ; calendrier Tempo issu de `api-couleur-tempo.fr` (relais des données RTE, sans licence déclarée), recoupé avec
